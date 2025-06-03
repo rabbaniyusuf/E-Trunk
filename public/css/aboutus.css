@@ -1,0 +1,94 @@
+.tentang-kami {
+  padding: 80px 20px;
+  background: linear-gradient(to bottom right, #e7f3ff, #ffffff);
+  color: #333;
+}
+
+.tentang-kami .container {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.tentang-kami h1 {
+  font-size: 36px;
+  margin-bottom: 20px;
+  color: #004d99;
+}
+
+.tentang-kami p {
+  font-size: 18px;
+  line-height: 1.8;
+  margin-bottom: 20px;
+}
+
+.team-section {
+  margin-top: 40px;
+}
+
+.team-grid {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.team-card {
+  background: #ffffff;
+  border: 1px solid #cce0ff;
+  padding: 20px;
+  text-align: center;
+  border-radius: 12px;
+  flex: 1 1 200px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.team-card img {
+  width: 80px;
+  height: 80px;
+  object-fit: cover;
+  border-radius: 50%;
+  margin-bottom: 10px;
+}
+/* Navbar Styling */
+.navbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: #2f2f2f;
+    padding: 10px 40px;
+    color: white;
+    font-family: 'Poppins', sans-serif;
+  }
+  
+  .logo {
+    font-weight: bold;
+    font-size: 1.5rem;
+  }
+  
+  .nav-links {
+    list-style: none;
+    display: flex;
+    gap: 30px;
+  }
+  
+  .nav-links li a {
+    color: white;
+    text-decoration: none;
+    padding: 8px 14px;
+    border-radius: 20px;
+    transition: background 0.3s;
+  }
+  
+  .nav-links li a:hover,
+  .nav-links li a.active {
+    background-color: #444;
+  }
+  
+  .logout-btn {
+    background-color: black;
+    color: white;
+    padding: 8px 16px;
+    text-decoration: none;
+    border-radius: 20px;
+    font-weight: 500;
+  }
+  

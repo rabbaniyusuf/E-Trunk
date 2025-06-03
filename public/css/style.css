@@ -1,0 +1,206 @@
+/* Reset dasar */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+  
+  body {
+    font-family: 'Inter', sans-serif;
+    background-color: #f9fbfd;
+    color: #333;
+    line-height: 1.6;
+  }
+  
+  /* Navbar */
+  .navbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 10%;
+    background-color: #ffffff;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  
+  .logo {
+    font-size: 1.5em;
+    font-weight: 800;
+    color: #2c3e50;
+  }
+  
+  .nav-links {
+    display: flex;
+    gap: 24px;
+    list-style: none;
+  }
+  
+  .nav-links a {
+    text-decoration: none;
+    color: #333;
+    font-weight: 600;
+    transition: color 0.3s ease;
+  }
+  
+  .nav-links a:hover {
+    color: #007bff;
+  }
+  
+  /* Hero Section */
+  .hero {
+  position: relative;
+  background-image: linear-gradient(to right, rgb(20, 20, 20), rgba(0, 123, 255, 0)), url('../assets/tempatsampah.jpg');
+  background-size: cover;
+  background-position: center;
+  padding: 80px 50px;
+  color: white;
+  min-height: 60vh;
+  display: flex;
+  align-items: center;
+}
+
+  
+  
+  .hero-content {
+    max-width: 600px;
+    z-index: 2;
+  }
+  
+  .hero h1 {
+    font-size: 3rem;
+    font-weight: 700;
+  }
+  
+  .hero p {
+    font-size: 1.2rem;
+    margin: 1rem 0;
+  }
+  
+  .btn-primary {
+    background-color: #007bff;
+    color: white;
+    padding: 12px 24px;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: bold;
+  }
+  
+  
+  
+.bank-sampah {
+  background-image:linear-gradient(to right, rgb(0, 0, 0), rgba(0, 0, 0, 0.1)), url('../assets/banksampah.jpg'); /* Ganti sesuai nama file */
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  width: 100%;
+  color: white;
+  cursor: pointer;
+}
+
+.bank-sampah-inner {
+  background-color: rgba(0, 0, 0, 0.292); /* Transparansi supaya teks terlihat */
+  padding: 120px 5%;
+  max-width: 1920px;
+  margin: 0 auto;
+  text-align: left;
+  border-radius: 0;
+}
+
+.bank-sampah h2 {
+  font-size: 2rem;
+  margin-bottom: 20px;
+  color: #fff;
+}
+
+.bank-sampah p {
+  font-size: 1.1rem;
+  color: #eee;
+}
+
+.Monitoring {
+  background-image:linear-gradient(to right, rgba(0, 0, 0, 0.079), rgb(0, 0, 0)), url('../assets/blacktrash.jpg'); /* Ganti sesuai nama file */
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  width: 100%;
+  color: white;
+  cursor: pointer;
+}
+
+.monitoring-volume-sampah {
+  background-color: rgba(0, 0, 0, 0.292); /* Transparansi supaya teks terlihat */
+  padding: 120px 5%;
+  max-width: 1920px;
+  margin: 0 auto;
+  text-align: right;
+  border-radius: 0;
+}
+
+.Monitoring h3 {
+  font-size: 2rem;
+  margin-bottom: 20px;
+  color: #fff;
+}
+
+.Monitoring p {
+  font-size: 2 rem;
+  color: #eee;
+}
+
+
+
+  /* Footer */
+  footer {
+    text-align: center;
+    padding: 20px;
+    background-color: #f1f1f1;
+    font-size: 0.9rem;
+    color: #777;
+    margin-top: 60px;
+  }
+  
+  /* Responsive */
+  @media screen and (max-width: 768px) {
+    .hero {
+      flex-direction: column;
+      text-align: center;
+    }
+  
+    .hero-image img {
+      margin-top: 40px;
+    }
+  
+    .feature-grid {
+      flex-direction: column;
+      align-items: center;
+    }
+
+      /* Navbar Responsive */
+  .navbar {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 16px;
+  }
+
+  .nav-links {
+    flex-direction: row;
+    width: 100%;
+    gap: 12px;
+    margin-top: 10px;
+  }
+
+  .nav-links a {
+    width: 100%;
+    display: block;
+    padding: 8px 0;
+    font-size: 1rem;
+  }
+
+  .logo {
+    font-size: 1.2rem;
+    margin-bottom: 10px;
+  }
+}
+  
