@@ -1,0 +1,93 @@
+<?php
+
+namespace Database\Seeders;
+
+use App\Models\User;
+use Illuminate\Database\Seeder;
+use Spatie\Permission\Models\Role;
+use Spatie\Permission\Models\Permission;
+use Illuminate\Database\Console\Seeds\WithoutModelEvents;
+
+class RolePermissionSeeder extends Seeder
+{
+    /**
+     * Run the database seeds.
+     */
+    public function run(): void
+    {
+        // Reset cached roles and permissions
+        app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
+
+        // Buat permissions
+        $permissions = [
+            // User Management
+            'view_users',
+            'create_users',
+            'edit_users',
+            'delete_users',
+
+            // Laporan Management
+            'view_reports',
+            'create_reports',
+            'edit_reports',
+            'delete_reports',
+            'approve_reports',
+            'assign_reports',
+
+            // Kebersihan Management
+            'view_cleaning_tasks',
+            'create_cleaning_tasks',
+            'edit_cleaning_tasks',
+            'complete_cleaning_tasks',
+
+            // Dashboard Access
+            'view_admin_dashboard',
+            'view_petugas_dashboard',
+            'view_user_dashboard',
+
+            // Statistics
+            'view_statistics',
+            'export_data',
+        ];
+
+        foreach ($permissions as $permission) {
+            Permission::create(['name' => $permission]);
+        }
+
+        // Buat roles dan assign permissions
+
+        // Role: Petugas Pusat (Super Admin)
+        $petugasPusat = Role::create(['name' => 'petugas_pusat']);
+        $petugasPusat->givePermissionTo(['view_users', 'create_users', 'edit_users', 'delete_users', 'view_reports', 'create_reports', 'edit_reports', 'delete_reports', 'approve_reports', 'assign_reports', 'view_cleaning_tasks', 'create_cleaning_tasks', 'edit_cleaning_tasks', 'view_admin_dashboard', 'view_statistics', 'export_data']);
+
+        // Role: Petugas Kebersihan
+        $petugasKebersihan = Role::create(['name' => 'petugas_kebersihan']);
+        $petugasKebersihan->givePermissionTo(['view_reports', 'edit_reports', 'view_cleaning_tasks', 'edit_cleaning_tasks', 'complete_cleaning_tasks', 'view_petugas_dashboard']);
+
+        // Role: Masyarakat (User)
+        $masyarakat = Role::create(['name' => 'masyarakat']);
+        $masyarakat->givePermissionTo(['view_reports', 'create_reports', 'view_user_dashboard']);
+
+        // Buat user default untuk testing
+        $admin = User::create([
+            'name' => 'Admin Pusat',
+            'email' => 'admin@example.com',
+            'password' => bcrypt('password123'),
+        ]);
+        $admin->assignRole('petugas_pusat');
+
+        $petugas = User::create([
+            'name' => 'Petugas Kebersihan',
+            'email' => 'petugas@example.com',
+            'password' => bcrypt('password123'),
+        ]);
+        $petugas->assignRole('petugas_kebersihan');
+
+        $user = User::create([
+            'name' => 'Masyarakat User',
+            'email' => 'user@example.com',
+            'password' => bcrypt('password123'),
+        ]);
+        $user->assignRole('masyarakat');
+    }
+}

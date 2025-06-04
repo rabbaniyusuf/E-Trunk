@@ -1,36 +1,62 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Login - E-TRANK</title>
-  <link rel="stylesheet" href="{{ asset('css/login.css') }}" />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
-</head>
-<body>
-  <div class="login-container">
-    <form class="login-form" method="POST" action="{{ route('login') }}">
-      @csrf
-      <h2>Login ke Akun Anda</h2>
+@extends('layouts.auth')
 
-      <div class="input-group">
-        <label for="email">Email</label>
-        <input type="email" id="email" name="email" required placeholder="email@example.com" />
-      </div>
+@section('title', 'Login')
+@section('heading', 'Login ke Akun Anda')
+@section('subheading', 'Selamat datang kembali! Silakan masuk ke akun Anda.')
 
-      <div class="input-group">
+@section('content')
+<form method="POST" action="{{ route('login') }}">
+    @csrf
+
+    <div class="form-floating">
+        <input type="email"
+               class="form-control @error('email') is-invalid @enderror"
+               id="email"
+               name="email"
+               placeholder="name@example.com"
+               value="{{ old('email') }}"
+               required
+               autofocus>
+        <label for="email">Alamat Email</label>
+        @error('email')
+            <div class="invalid-feedback">
+                {{ $message }}
+            </div>
+        @enderror
+    </div>
+
+    <div class="form-floating">
+        <input type="password"
+               class="form-control @error('password') is-invalid @enderror"
+               id="password"
+               name="password"
+               placeholder="Password"
+               required>
         <label for="password">Kata Sandi</label>
-        <input type="password" id="password" name="password" required placeholder="••••••••" />
-      </div>
+        @error('password')
+            <div class="invalid-feedback">
+                {{ $message }}
+            </div>
+        @enderror
+    </div>
 
-      <button type="submit" class="btn-login">Masuk</button>
+    <div class="form-check mb-3">
+        <input class="form-check-input" type="checkbox" name="remember" id="remember" {{ old('remember') ? 'checked' : '' }}>
+        <label class="form-check-label" for="remember">
+            Ingat saya
+        </label>
+    </div>
 
-      <div class="extra-links">
-        <a href="#">Lupa Kata Sandi?</a>
-        <span>|</span>
-        <a href="{{ route('register')}}">Daftar</a>
-      </div>
-    </form>
-  </div>
-</body>
-</html>
+    <button type="submit" class="btn btn-primary">
+        Masuk
+    </button>
+
+    <div class="auth-links">
+        @if (Route::has('password.request'))
+            <a href="{{ route('password.request') }}">Lupa kata sandi?</a>
+            <span class="separator">|</span>
+        @endif
+        <a href="{{ route('register') }}">Belum punya akun? Daftar</a>
+    </div>
+</form>
+@endsection

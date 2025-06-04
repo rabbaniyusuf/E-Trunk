@@ -1,39 +1,93 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8" />
-    <title>Daftar Akun</title>
-    <link rel="stylesheet" href="{{ asset('css/login.css') }}"/>
-</head>
-<body>
-    <div class="login-container">
-        <form class="login-form" method="POST" action="{{ route('register') }}">
-            @csrf
-            <h2>Daftar Akun</h2>
+@extends('layouts.auth')
 
-            @if ($errors->any())
-                <div>
-                    <ul>
-                        @foreach ($errors->all() as $error)
-                            <li style="color:red;">{{ $error }}</li>
-                        @endforeach
-                    </ul>
-                </div>
-            @endif
+@section('title', 'Daftar')
+@section('heading', 'Buat Akun Baru')
+@section('subheading', 'Bergabunglah dengan kami dan mulai perjalanan Anda.')
 
-            <div class="input-group">
-                <label>Nama</label>
-                <input type="text" name="name" required placeholder="Nama">
+@section('content')
+<form method="POST" action="{{ route('register') }}">
+    @csrf
+
+    <div class="form-floating">
+        <input type="text"
+               class="form-control @error('name') is-invalid @enderror"
+               id="name"
+               name="name"
+               placeholder="Nama Lengkap"
+               value="{{ old('name') }}"
+               required
+               autofocus>
+        <label for="name">Nama Lengkap</label>
+        @error('name')
+            <div class="invalid-feedback">
+                {{ $message }}
             </div>
+        @enderror
+    </div>
 
-            <div class="input-group">
-                <label>Email</label>
-                <input type="email" name="email" required placeholder="email@example.com">
+    <div class="form-floating">
+        <input type="email"
+               class="form-control @error('email') is-invalid @enderror"
+               id="email"
+               name="email"
+               placeholder="name@example.com"
+               value="{{ old('email') }}"
+               required>
+        <label for="email">Alamat Email</label>
+        @error('email')
+            <div class="invalid-feedback">
+                {{ $message }}
             </div>
+        @enderror
+    </div>
 
-            <div class="input-group">
-                <label>Kata Sandi</label>
-                <input type="password" name="password" required placeholder="••••••••" >
+    <div class="form-floating">
+        <input type="password"
+               class="form-control @error('password') is-invalid @enderror"
+               id="password"
+               name="password"
+               placeholder="Password"
+               required>
+        <label for="password">Kata Sandi</label>
+        @error('password')
+            <div class="invalid-feedback">
+                {{ $message }}
             </div>
+        @enderror
+    </div>
 
-             <button type="submit" class="btn-login">Masuk</button>
+    <div class="form-floating">
+        <input type="password"
+               class="form-control"
+               id="password_confirmation"
+               name="password_confirmation"
+               placeholder="Konfirmasi Password"
+               required>
+        <label for="password_confirmation">Konfirmasi Kata Sandi</label>
+    </div>
+
+    <div class="form-check mb-3">
+        <input class="form-check-input @error('terms') is-invalid @enderror"
+               type="checkbox"
+               name="terms"
+               id="terms"
+               required>
+        <label class="form-check-label" for="terms">
+            Saya setuju dengan <a href="#" target="_blank">syarat dan ketentuan</a>
+        </label>
+        @error('terms')
+            <div class="invalid-feedback">
+                {{ $message }}
+            </div>
+        @enderror
+    </div>
+
+    <button type="submit" class="btn btn-primary">
+        Daftar Sekarang
+    </button>
+
+    <div class="auth-links">
+        <a href="{{ route('login') }}">Sudah punya akun? Masuk</a>
+    </div>
+</form>
+@endsection
