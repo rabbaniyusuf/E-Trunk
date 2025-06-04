@@ -21,9 +21,9 @@ use App\Http\Controllers\TaskController;
 */
 
 // Public Routes
-Route::get('/', [HomeController::class, 'index'])->name('home');
 
 // Guest Routes (hanya bisa diakses jika belum login)
+Route::get('/', [HomeController::class, 'index'])->name('home');
 Route::middleware('guest')->group(function () {
     // Authentication Routes
     Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
@@ -42,12 +42,12 @@ Route::middleware('guest')->group(function () {
 // Authenticated Routes (hanya bisa diakses jika sudah login)
 Route::middleware('auth')->group(function () {
     // Dashboard - Redirect berdasarkan role
-    Route::get('/dashboard', [HomeController::class, 'dashboard'])->name('dashboard');
+    // Route::get('/dashboard', [HomeController::class, 'dashboard'])->name('dashboard');
 
-    // Logout
+    // // Logout
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
-    // Profile Routes - Semua user bisa akses
+    // // Profile Routes - Semua user bisa akses
     Route::get('/profile', [HomeController::class, 'profile'])->name('profile');
     Route::put('/profile', [HomeController::class, 'updateProfile'])->name('profile.update');
 
@@ -110,7 +110,11 @@ Route::middleware('auth')->group(function () {
         ->name('user.')
         ->group(function () {
             // Dashboard User
-            Route::get('/dashboard', [UserController::class, 'dashboard'])->name('dashboard');
+            Route::get('/monitoring-sampah', [UserController::class, 'dashboard'])->name('dashboard');
+            Route::get('/nabung', [UserController::class, 'nabung'])->name('nabung');
+            Route::get('/riwayat-transaksi', [UserController::class, 'riwayat-transaksi'])->name('riwayat-transaksi');
+            Route::get('/saldo-bank', [UserController::class, 'saldo-bank'])->name('saldo-bank');
+            Route::get('/tukar-poin', [UserController::class, 'tukar-poin'])->name('tukar-poin');
 
             // Report Management
             Route::resource('reports', ReportController::class)->only(['index', 'create', 'store', 'show']);

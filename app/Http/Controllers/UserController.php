@@ -6,5 +6,12 @@ use Illuminate\Http\Request;
 
 class UserController extends Controller
 {
-    //
+    public function dashboard()
+    {
+        return view('user.dashboard.index');
+    }
+
+    public function nabung(){
+        return view('user.nabung.index');
+    }
 }

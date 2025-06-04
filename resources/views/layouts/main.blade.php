@@ -26,7 +26,8 @@
     <!-- Navigation -->
     <nav class="navbar navbar-expand-lg navbar-light">
         <div class="container">
-            <a class="navbar-brand" href="{{ route('dashboard') }}">
+            <a class="navbar-brand"
+                href="{{ auth()->user()->hasRole('admin') ? route('admin.dashboard') : (auth()->user()->hasRole('petugas_kebersihan') ? route('petugas.dashboard') : route('user.dashboard')) }}">
                 E-<strong>TRANK</strong>
             </a>
 
@@ -36,36 +37,104 @@
 
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav me-auto">
-                    <li class="nav-item">
-                        <a class="nav-link {{ request()->routeIs('home') ? 'active' : '' }}" href="{{ route('home') }}">
-                            <i class="bi bi-house"></i> Beranda
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {{ request()->routeIs('dashboard*') ? 'active' : '' }}"
-                            href="{{ route('dashboard') }}">
-                            <i class="bi bi-speedometer2"></i> Dashboard
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        {{-- <a class="nav-link {{ request()->routeIs('about') ? 'active' : '' }}"
-                            href="{{ route('about') }}">
-                            <i class="bi bi-info-circle"></i> Tentang Kami
-                        </a> --}}
-                    </li>
+                    
                 </ul>
 
                 <div class="d-flex align-items-center">
                     @auth
+                        {{-- Notifikasi (khusus untuk user dan petugas kebersihan) --}}
+                        @role('user|petugas_kebersihan')
+                            <div class="me-3">
+                                <a href="{{ route('notifikasi.index') }}"
+                                    class="btn btn-outline-secondary position-relative">
+                                    <i class="bi bi-bell"></i>
+                                    @if (auth()->user()->unreadNotifications->count() > 0)
+                                        <span
+                                            class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                                            {{ auth()->user()->unreadNotifications->count() }}
+                                        </span>
+                                    @endif
+                                </a>
+                            </div>
+                        @endrole
+
+                        {{-- User Dropdown --}}
                         <div class="dropdown">
                             <button class="btn btn-outline-primary dropdown-toggle" type="button"
                                 data-bs-toggle="dropdown">
-                                <i class="bi bi-person-circle"></i> {{ Auth::user()->name }}
+                                <i class="bi bi-person-circle"></i>
+                                {{ Auth::user()->name }}
+                                <small class="text-muted">
+                                    @if (Auth::user()->hasRole('admin'))
+                                        (Petugas Pusat)
+                                    @elseif(Auth::user()->hasRole('petugas_kebersihan'))
+                                        (Petugas Kebersihan)
+                                    @else
+                                        (Masyarakat)
+                                    @endif
+                                </small>
                             </button>
                             <ul class="dropdown-menu">
-                                <li><a class="dropdown-item" href="{{ route('profile') }}">
-                                        <i class="bi bi-person"></i> Profil
-                                    </a></li>
+                                <li>
+                                    <h6 class="dropdown-header">
+                                        <i class="bi bi-shield-check"></i>
+                                        @if (Auth::user()->hasRole('admin'))
+                                            Petugas Pusat
+                                        @elseif(Auth::user()->hasRole('petugas_kebersihan'))
+                                            Petugas Kebersihan
+                                        @else
+                                            Masyarakat
+                                        @endif
+                                    </h6>
+                                </li>
+                                <li>
+                                    <hr class="dropdown-divider">
+                                </li>
+                                {{-- <li>
+                                    <a class="dropdown-item" href="{{ route('profil.show') }}">
+                                        <i class="bi bi-person"></i> Profil Saya
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="{{ route('profil.edit') }}">
+                                        <i class="bi bi-gear"></i> Edit Profil
+                                    </a>
+                                </li> --}}
+
+                                {{-- Menu khusus berdasarkan role --}}
+                                @role('user')
+                                    <li>
+                                        <hr class="dropdown-divider">
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item" href="{{ route('user.rekening.index') }}">
+                                            <i class="bi bi-bank"></i> Info Rekening
+                                        </a>
+                                    </li>
+                                @endrole
+
+                                @role('admin')
+                                    <li>
+                                        <hr class="dropdown-divider">
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item" href="{{ route('admin.backup.index') }}">
+                                            <i class="bi bi-archive"></i> Backup Data
+                                        </a>
+                                    </li>
+                                @endrole
+
+                                @role('petugas_kebersihan')
+                                    <li>
+                                        <hr class="dropdown-divider">
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item" href="{{ route('petugas.jadwal.saya') }}">
+                                            <i class="bi bi-calendar-check"></i> Jadwal Saya
+                                        </a>
+                                    </li>
+                                @endrole
+
                                 <li>
                                     <hr class="dropdown-divider">
                                 </li>
@@ -80,9 +149,14 @@
                             </ul>
                         </div>
                     @else
-                        <a href="{{ route('login') }}" class="btn btn-logout">
-                            <i class="bi bi-box-arrow-in-right"></i> Masuk
-                        </a>
+                        <div class="d-flex gap-2">
+                            <a href="{{ route('login') }}" class="btn btn-outline-primary">
+                                <i class="bi bi-box-arrow-in-right"></i> Masuk
+                            </a>
+                            <a href="{{ route('register') }}" class="btn btn-primary">
+                                <i class="bi bi-person-plus"></i> Daftar Sebagai Masyarakat
+                            </a>
+                        </div>
                     @endauth
                 </div>
             </div>

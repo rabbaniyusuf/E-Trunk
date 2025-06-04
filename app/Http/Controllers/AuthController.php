@@ -20,13 +20,25 @@ class AuthController extends Controller
     /**
      * Handle an incoming authentication request.
      */
-    public function login(LoginRequest $request)
+   public function login(LoginRequest $request)
     {
         $request->authenticate();
 
         $request->session()->regenerate();
 
-        return redirect()->intended(route('dashboard'));
+        // Get authenticated user
+        $user = Auth::user();
+
+        // Set welcome message dengan role
+        $roleName = $user->roles->first()?->name ?? 'user';
+        $roleDisplay = $this->getRoleDisplayName($roleName);
+
+        session()->flash('success', "Selamat datang, {$user->name}! Anda login sebagai {$roleDisplay}.");
+
+        // Redirect berdasarkan role
+        $redirectUrl = $this->getRedirectUrlByRole($user);
+
+        return redirect()->intended($redirectUrl);
     }
 
     /**
@@ -121,5 +133,34 @@ class AuthController extends Controller
         $request->session()->regenerateToken();
 
         return redirect('/');
+    }
+
+     private function getRedirectUrlByRole(User $user): string
+    {
+        if ($user->hasRole('petugas_pusat')) {
+            return route('admin.dashboard');
+        }
+
+        if ($user->hasRole('petugas_kebersihan')) {
+            return route('petugas.dashboard');
+        }
+
+        if ($user->hasRole('masyarakat')) {
+            return route('user.dashboard');
+        }
+
+        // Default fallback
+        return route('home');
+    }
+
+     private function getRoleDisplayName(string $roleName): string
+    {
+        $roleNames = [
+            'petugas_pusat' => 'Petugas Pusat',
+            'petugas_kebersihan' => 'Petugas Kebersihan',
+            'masyarakat' => 'Masyarakat',
+        ];
+
+        return $roleNames[$roleName] ?? 'User';
     }
 }
