@@ -188,7 +188,7 @@
                     <i class="bi bi-wallet2"></i>
                 </div>
                 <h6 class="text-muted mb-2">Saldo Bank Sampah</h6>
-                <h3 class="text-primary mb-0">{{ number_format($balance ?? 100) }} Poin</h3>
+                <h3 class="text-primary mb-0">{{ number_format($balance ?? 0) }} Poin</h3>
                 <small class="text-success">
                     <i class="bi bi-arrow-up"></i> +15 dari bulan lalu
                 </small>
@@ -205,10 +205,10 @@
                             stroke-dasharray="{{ (60 / 100) * 226.19 }} 226.19">
                         </circle>
                     </svg>
-                    <div class="progress-text text-success">60%</div>
+                    <div class="progress-text text-success">0%</div>
                 </div>
                 <h6 class="text-muted mb-2">Sampah Recycle</h6>
-                <div class="text-success fw-semibold">{{ number_format($recycleVolume ?? 240) }} kg</div>
+                <div class="text-success fw-semibold">{{ number_format($recycleVolume ?? 0) }} kg</div>
             </div>
         </div>
 
@@ -222,10 +222,10 @@
                             stroke-dasharray="{{ (40 / 100) * 226.19 }} 226.19">
                         </circle>
                     </svg>
-                    <div class="progress-text text-warning">40%</div>
+                    <div class="progress-text text-warning">0%</div>
                 </div>
                 <h6 class="text-muted mb-2">Sampah Non-Recycle</h6>
-                <div class="text-warning fw-semibold">{{ number_format($nonRecycleVolume ?? 160) }} kg</div>
+                <div class="text-warning fw-semibold">{{ number_format($nonRecycleVolume ?? 0) }} kg</div>
             </div>
         </div>
     </div>
@@ -251,6 +251,7 @@
             </div>
         </div>
     </div>
+
 @endsection
 
 @push('scripts')

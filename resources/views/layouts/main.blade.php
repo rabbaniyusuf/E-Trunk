@@ -37,7 +37,7 @@
 
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav me-auto">
-                    
+
                 </ul>
 
                 <div class="d-flex align-items-center">
@@ -65,7 +65,7 @@
                                 <i class="bi bi-person-circle"></i>
                                 {{ Auth::user()->name }}
                                 <small class="text-muted">
-                                    @if (Auth::user()->hasRole('admin'))
+                                    @if (Auth::user()->hasRole('petugas_pusat'))
                                         (Petugas Pusat)
                                     @elseif(Auth::user()->hasRole('petugas_kebersihan'))
                                         (Petugas Kebersihan)
@@ -78,7 +78,7 @@
                                 <li>
                                     <h6 class="dropdown-header">
                                         <i class="bi bi-shield-check"></i>
-                                        @if (Auth::user()->hasRole('admin'))
+                                        @if (Auth::user()->hasRole('petugas_pusat'))
                                             Petugas Pusat
                                         @elseif(Auth::user()->hasRole('petugas_kebersihan'))
                                             Petugas Kebersihan

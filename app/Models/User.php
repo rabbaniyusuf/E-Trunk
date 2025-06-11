@@ -18,7 +18,7 @@ class User extends Authenticatable
      *
      * @var list<string>
      */
-    protected $fillable = ['name', 'email', 'password'];
+    protected $fillable = ['name', 'email', 'password', 'phone', 'address', 'district', 'postal_code', 'balance'];
 
     /**
      * The attributes that should be hidden for serialization.
@@ -37,6 +37,7 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'balance' => 'decimal:2',
         ];
     }
 
@@ -53,5 +54,47 @@ class User extends Authenticatable
     public function isMasyarakat(): bool
     {
         return $this->hasRole('masyarakat');
+    }
+
+     public function bins()
+    {
+        return $this->hasMany(Bin::class);
+    }
+
+    /**
+     * Get the recycle bin for the user.
+     */
+    public function recycleBin()
+    {
+        return $this->hasOne(Bin::class)->where('type', 'recycle');
+    }
+
+    /**
+     * Get the non-recycle bin for the user.
+     */
+    public function nonRecycleBin()
+    {
+        return $this->hasOne(Bin::class)->where('type', 'non_recycle');
+    }
+
+    /**
+     * Check if user is active.
+     */
+
+    /**
+     * Get full address.
+     */
+    public function getFullAddressAttribute()
+    {
+        return $this->address . ', ' . $this->district .
+               ($this->postal_code ? ' ' . $this->postal_code : '');
+    }
+
+    /**
+     * Get photo URL.
+     */
+    public function getPhotoUrlAttribute()
+    {
+        return $this->photo ? asset('storage/users/' . $this->photo) : asset('images/default-avatar.png');
     }
 }

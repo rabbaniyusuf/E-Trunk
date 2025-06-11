@@ -16,9 +16,17 @@
             <ul class="nav-links">
                 <li><a href="#">Beranda</a></li>
                 @auth
-                    <li><a href="#">Dashboard</a></li>
+                    @role('petugas_pusat')
+                        <li><a href="{{ route('admin.dashboard') }}">Dashboard</a></li>
+                    @endrole
+                    @role('petugas_kebersihan')
+                        <li><a href="{{ route('petugas.dashboard') }}">Dashboard</a></li>
+                    @endrole
+                    @role('masyarakat')
+                        <li><a href="{{ route('user.dashboard') }}">Dashboard</a></li>
+                    @endrole
                 @endauth
-                <li><a href="{{ asset('aboutus.html') }}">Tentang Kami</a></li>
+                {{-- <li><a href="{{ asset('aboutus.html') }}">Tentang Kami</a></li> --}}
             </ul>
         </nav>
     </header>

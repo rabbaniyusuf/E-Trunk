@@ -237,10 +237,10 @@
                 <div class="card-body text-center">
                     <h5 class="card-title mb-3">Aksi Cepat</h5>
                     <div class="d-flex flex-wrap justify-content-center">
-                        {{-- <a href="{{ route('transactions.create') }}" class="btn btn-primary-custom action-btn">
-                            <i class="bi bi-plus-circle"></i> Setor Sampah
+                        <a href="{{ route('admin.users.index') }}" class="btn btn-primary-custom action-btn">
+                            <i class="bi bi-plus-circle"></i> Buat Akun
                         </a>
-                        <a href="{{ route('rewards.index') }}" class="btn btn-success-custom action-btn">
+                        {{-- <a href="{{ route('rewards.index') }}" class="btn btn-success-custom action-btn">
                             <i class="bi bi-gift"></i> Tukar Poin
                         </a>
                         <a href="{{ route('transactions.index') }}" class="btn btn-warning-custom action-btn">

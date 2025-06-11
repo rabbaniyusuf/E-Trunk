@@ -62,6 +62,12 @@ Route::middleware('auth')->group(function () {
         ->group(function () {
             // Dashboard Admin
             Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('dashboard');
+            Route::prefix('users')->name('users.')->group(function () {
+                Route::get('/', [AdminController::class, 'index'])->name('index');
+                Route::get('/create', [AdminController::class, 'create'])->name(name: 'create');
+                Route::post('/create', [AdminController::class, 'store'])->name(name: 'store');
+                Route::get('/{user}/edit', [AdminController::class, 'edit'])->name('edit');
+            });
 
             // User Management
             Route::resource('users', AdminController::class)->except(['show']);
