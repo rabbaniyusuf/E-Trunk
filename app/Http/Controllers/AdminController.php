@@ -6,7 +6,10 @@ use Carbon\Carbon;
 use App\Models\Bin;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rules\Password;
 
 class AdminController extends Controller
 {
@@ -18,94 +21,43 @@ class AdminController extends Controller
     public function index(Request $request)
     {
         // Build query with filters
-        $query = User::with(['bins', 'roles'])->whereHas('roles', function ($q) {
-            $q->whereIn('name', ['masyarakat', 'petugas_kebersihan']);
-        });
+        $users = User::role('masyarakat')->with('wasteBin')->latest()->paginate(10);
 
-        // Search filter
-        if ($request->filled('search')) {
-            $search = $request->search;
-            $query->where(function ($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                    ->orWhere('email', 'like', "%{$search}%")
-                    ->orWhere('phone', 'like', "%{$search}%")
-                    ->orWhereHas('bins', function ($binQuery) use ($search) {
-                        $binQuery->where('bin_code', 'like', "%{$search}%");
-                    });
-            });
-        }
-
-        // Role filter
-        if ($request->filled('role')) {
-            $query->whereHas('roles', function ($q) use ($request) {
-                $q->where('name', $request->role);
-            });
-        }
-
-        // District filter
-        if ($request->filled('district')) {
-            $query->where('district', $request->district);
-        }
-
-        // Bin status filter
-        if ($request->filled('bin_status')) {
-            switch ($request->bin_status) {
-                case 'active':
-                    $query->whereHas('bins', function ($q) {
-                        $q->where('status', 'active');
-                    });
-                    break;
-                case 'inactive':
-                    $query->whereHas('bins', function ($q) {
-                        $q->where('status', 'inactive');
-                    });
-                    break;
-                case 'full':
-                    $query->whereHas('bins', function ($q) {
-                        $q->whereRaw('current_weight >= capacity * 0.8');
-                    });
-                    break;
-            }
-        }
-
-        // Get paginated results
-        $users = $query->orderBy('created_at', 'desc')->paginate(10);
-
-        // Get statistics
-        $totalUsers = User::whereHas('roles', function ($q) {
-            $q->whereIn('name', ['masyarakat', 'petugas_kebersihan']);
-        })->count();
-
-        $activeBins = Bin::where('status', 'active')->count();
-
-        $fullBins = Bin::whereRaw('current_weight >= capacity * 0.8')->count();
-
-        $todayPickups = Bin::whereDate('last_pickup', Carbon::today())->count();
-
-        // Get unique districts for filter dropdown
-        $districts = User::whereNotNull('district')->where('district', '!=', '')->distinct()->pluck('district')->sort()->values();
-
-        return view('admin.users.index', compact('users', 'totalUsers', 'activeBins', 'fullBins', 'todayPickups', 'districts'));
+        return view('admin.users.index', compact('users'));
     }
 
     public function create()
     {
-        return view('admin.users.create');
+        $availableBins = Bin::active()->whereDoesntHave('users')->get();
+
+        return view('admin.users.create', compact('availableBins'));
     }
 
     public function store(Request $request)
     {
-        $request->validate([
+        $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
-            'email' => 'nullable|email|unique:users,email',
-            'phone' => 'required|string|unique:users,phone',
-            'address' => 'required|string',
-            'district' => 'required|string|max:255',
-            'postal_code' => 'nullable|string|max:10',
+            'email' => 'required|string|email|max:255|unique:users',
+            'phone' => 'required|string|max:20',
+            'address' => 'required|string|max:500',
+            'district' => 'required|string|max:100',
+            'postal_code' => 'required|string|max:10',
+            'waste_bin_code' => [
+                'required',
+                'string',
+                Rule::exists('bins', 'bin_code')->where(function ($query) {
+                    $query->where('is_active', true);
+                }),
+                'unique:users,waste_bin_code',
+            ],
+            'password' => 'required|string|min:8|confirmed',
         ]);
 
+        if ($validator->fails()) {
+            return redirect()->back()->withErrors($validator)->withInput();
+        }
+
         try {
-            // Create user
             $user = User::create([
                 'name' => $request->name,
                 'email' => $request->email,
@@ -113,35 +65,20 @@ class AdminController extends Controller
                 'address' => $request->address,
                 'district' => $request->district,
                 'postal_code' => $request->postal_code,
-                'password' => Hash::make('password123'), // Default password
+                'waste_bin_code' => $request->waste_bin_code,
+                'password' => Hash::make($request->password),
+                'balance' => 0,
             ]);
 
-            // Assign user role
+            // Assign role masyarakat
             $user->assignRole('masyarakat');
 
-            // Create bins for the user
-            $this->createBinsForUser($user);
-
-            return redirect()->route('admin.users.index')->with('success', 'User berhasil ditambahkan dengan 2 tong sampah');
+            return redirect()->route('admin.users.index')->with('success', 'Akun user berhasil dibuat!');
         } catch (\Exception $e) {
-            return back()
-                ->withInput()
-                ->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
-        }
-    }
-
-    private function createBinsForUser(User $user)
-    {
-        $binTypes = ['recycle', 'non_recycle'];
-
-        foreach ($binTypes as $type) {
-            Bin::create([
-                'user_id' => $user->id,
-                'bin_code' => Bin::generateBinCode($user->id, $type),
-                'type' => $type,
-                'status' => 'active',
-                'capacity' => 100, // 100 kg default capacity
-            ]);
+            return redirect()
+                ->back()
+                ->with('error', 'Terjadi kesalahan saat membuat akun: ' . $e->getMessage())
+                ->withInput();
         }
     }
 

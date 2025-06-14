@@ -53,6 +53,7 @@ color: white;
 
 .main-content {
 padding: 2rem 0;
+min-width: 100vh;
 }
 
 .card {

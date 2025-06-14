@@ -27,7 +27,7 @@
     <nav class="navbar navbar-expand-lg navbar-light">
         <div class="container">
             <a class="navbar-brand"
-                href="{{ auth()->user()->hasRole('admin') ? route('admin.dashboard') : (auth()->user()->hasRole('petugas_kebersihan') ? route('petugas.dashboard') : route('user.dashboard')) }}">
+                href="{{ auth()->user()->hasRole('petugas_pusat') ? route('admin.dashboard') : (auth()->user()->hasRole('petugas_kebersihan') ? route('petugas.dashboard') : route('user.dashboard')) }}">
                 E-<strong>TRANK</strong>
             </a>
 

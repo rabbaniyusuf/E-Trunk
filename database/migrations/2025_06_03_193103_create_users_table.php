@@ -19,6 +19,7 @@ return new class extends Migration {
             $table->string('district')->nullable();
             $table->string('postal_code')->nullable();
             $table->decimal('balance', 15, 2)->default(0);
+            $table->string('waste_bin_code', 50)->nullable();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
             $table->rememberToken();

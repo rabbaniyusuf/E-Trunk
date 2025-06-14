@@ -2,76 +2,68 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Bin extends Model
 {
+    use HasFactory;
+
     protected $fillable = [
-        'user_id',
         'bin_code',
-        'type',
-        'status',
-        'current_weight',
-        'capacity',
-        'last_pickup',
-        'notes',
+        'location',
+        'address',
+        'capacity_liters',
+        'is_active',
     ];
 
-     protected function casts(): array
+    protected function casts(): array
     {
         return [
-            'current_weight' => 'decimal:2',
-            'capacity' => 'decimal:2',
-            'last_pickup' => 'datetime',
+            'capacity_liters' => 'decimal:2',
+            'is_active' => 'boolean',
         ];
     }
 
-    /**
-     * Get the user that owns the bin.
-     */
-    public function user()
+     public function users()
     {
-        return $this->belongsTo(User::class);
+        return $this->hasMany(User::class, 'waste_bin_code', 'bin_code');
     }
 
-    /**
-     * Check if bin is active.
-     */
-    public function isActive()
+    public function wasteBinTypes()
     {
-        return $this->status === 'active';
+        return $this->hasMany(WasteBinType::class);
     }
 
-    /**
-     * Check if bin is full.
-     */
-    public function isFull()
+    public function schedules()
     {
-        return $this->current_weight >= $this->capacity;
+        return $this->hasMany(Schedules::class);
     }
 
-    /**
-     * Get fill percentage.
-     */
-    public function getFillPercentageAttribute()
+    // Scopes
+    public function scopeActive($query)
     {
-        return round(($this->current_weight / $this->capacity) * 100, 2);
+        return $query->where('is_active', true);
     }
 
-    /**
-     * Get remaining capacity.
-     */
-    public function getRemainingCapacityAttribute()
+    // Helper methods
+    public function getRecycleBin()
     {
-        return $this->capacity - $this->current_weight;
+        return $this->wasteBinTypes()->where('type', 'recycle')->first();
     }
 
-    /**
-     * Generate unique bin code.
-     */
-    public static function generateBinCode($userId, $type)
+    public function getNonRecycleBin()
     {
-        $prefix = $type === 'recycle' ? 'RC' : 'NR';
-        return $prefix . str_pad($userId, 4, '0', STR_PAD_LEFT) . rand(100, 999);
+        return $this->wasteBinTypes()->where('type', 'non_recycle')->first();
+    }
+
+    public function getAveragePercentage()
+    {
+        return $this->wasteBinTypes()->avg('current_percentage');
+    }
+
+    public function isFull($threshold = 80)
+    {
+        return $this->getAveragePercentage() >= $threshold;
     }
 }

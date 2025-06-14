@@ -118,9 +118,11 @@ Route::middleware('auth')->group(function () {
             // Dashboard User
             Route::get('/monitoring-sampah', [UserController::class, 'dashboard'])->name('dashboard');
             Route::get('/nabung', [UserController::class, 'nabung'])->name('nabung');
+            Route::post('/nabung', [UserController::class, 'store'])->name('nabung.store');
+            Route::post('/nabung/calculate', action: [UserController::class, 'calculatePoints'])->name('nabung.calculate');
             Route::get('/riwayat-transaksi', [UserController::class, 'riwayat-transaksi'])->name('riwayat-transaksi');
             Route::get('/saldo-bank', [UserController::class, 'saldo-bank'])->name('saldo-bank');
-            Route::get('/tukar-poin', [UserController::class, 'tukar-poin'])->name('tukar-poin');
+            Route::get('/tukar-poin', [UserController::class, 'tukarPoin'])->name('tukar-poin');
 
             // Report Management
             Route::resource('reports', ReportController::class)->only(['index', 'create', 'store', 'show']);

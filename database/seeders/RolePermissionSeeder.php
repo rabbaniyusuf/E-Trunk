@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Spatie\Permission\Models\Role;
+use Illuminate\Support\Facades\Hash;
 use Spatie\Permission\Models\Permission;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 
@@ -70,23 +71,36 @@ class RolePermissionSeeder extends Seeder
 
         // Buat user default untuk testing
         $admin = User::create([
-            'name' => 'Admin Pusat',
-            'email' => 'admin@example.com',
-            'password' => bcrypt('password123'),
+            'name' => 'Super Admin',
+            'email' => 'admin@wastemonitor.com',
+            'password' => Hash::make('admin123'),
+            'phone' => '081234567890',
+            'address' => 'Jl. Admin No. 1, Malang',
+            'balance' => 0,
+            'email_verified_at' => now(),
         ]);
         $admin->assignRole('petugas_pusat');
 
         $petugas = User::create([
-            'name' => 'Petugas Kebersihan',
-            'email' => 'petugas@example.com',
-            'password' => bcrypt('password123'),
+            'name' => 'Ahmad Petugas',
+            'email' => 'petugas1@wastemonitor.com',
+            'phone' => '081234567891',
+            'address' => 'Jl. Petugas No. 1, Malang',
+            'password' => Hash::make('petugas123'),
+            'balance' => 0,
+            'email_verified_at' => now(),
         ]);
         $petugas->assignRole('petugas_kebersihan');
 
         $user = User::create([
-            'name' => 'Masyarakat User',
-            'email' => 'user@example.com',
-            'password' => bcrypt('password123'),
+            'name' => 'Charlie Wilson',
+            'email' => 'charlie@example.com',
+            'phone' => '081234567898',
+            'address' => 'Jl. Thamrin No. 30, Malang',
+            'waste_bin_code' => 'WB005',
+            'balance' => 0,
+            'password' => Hash::make('charlie123'),
+            'email_verified_at' => now(),
         ]);
         $user->assignRole('masyarakat');
     }

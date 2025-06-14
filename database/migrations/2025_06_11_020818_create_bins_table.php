@@ -13,15 +13,15 @@ return new class extends Migration
     {
         Schema::create('bins', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->constrained()->onDelete('cascade');
-            $table->string('bin_code')->unique();
-            $table->enum('type', ['recycle', 'non_recycle']);
-            $table->enum('status', ['active', 'inactive', 'maintenance'])->default('active');
-            $table->decimal('current_weight', 8, 2)->default(0);
-            $table->decimal('capacity', 8, 2)->default(100); // kg
-            $table->timestamp('last_pickup')->nullable();
-            $table->text('notes')->nullable();
+            $table->string('bin_code', 50)->unique();
+            $table->string('location');
+            $table->text('address')->nullable();
+            $table->decimal('capacity_liters', 8, 2)->default(1.00);
+            $table->boolean('is_active')->default(true);
             $table->timestamps();
+
+            $table->index(['bin_code']);
+            $table->index(['location']);
         });
     }
 

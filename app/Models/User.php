@@ -18,7 +18,7 @@ class User extends Authenticatable
      *
      * @var list<string>
      */
-    protected $fillable = ['name', 'email', 'password', 'phone', 'address', 'district', 'postal_code', 'balance'];
+    protected $fillable = ['name', 'email', 'password', 'phone', 'address', 'district', 'postal_code', 'balance', 'waste_bin_code'];
 
     /**
      * The attributes that should be hidden for serialization.
@@ -64,37 +64,43 @@ class User extends Authenticatable
     /**
      * Get the recycle bin for the user.
      */
-    public function recycleBin()
+     public function wasteBin()
     {
-        return $this->hasOne(Bin::class)->where('type', 'recycle');
+        return $this->belongsTo(Bin::class, 'waste_bin_code', 'bin_code');
     }
 
-    /**
-     * Get the non-recycle bin for the user.
-     */
-    public function nonRecycleBin()
+    public function pointTransactions()
     {
-        return $this->hasOne(Bin::class)->where('type', 'non_recycle');
+        return $this->hasMany(PointTransactions::class);
     }
 
-    /**
-     * Check if user is active.
-     */
-
-    /**
-     * Get full address.
-     */
-    public function getFullAddressAttribute()
+    public function pointRedemptions()
     {
-        return $this->address . ', ' . $this->district .
-               ($this->postal_code ? ' ' . $this->postal_code : '');
+        return $this->hasMany(PointRedemptions::class);
     }
 
-    /**
-     * Get photo URL.
-     */
-    public function getPhotoUrlAttribute()
+    public function schedules()
     {
-        return $this->photo ? asset('storage/users/' . $this->photo) : asset('images/default-avatar.png');
+        return $this->hasMany(Schedules::class, 'petugas_id');
+    }
+
+    public function userSchedules()
+    {
+        return $this->hasMany(Schedules::class, 'user_id');
+    }
+
+    public function notifications()
+    {
+        return $this->hasMany(Notification::class);
+    }
+
+    public function processedTransactions()
+    {
+        return $this->hasMany(PointTransactions::class, 'processed_by');
+    }
+
+    public function processedRedemptions()
+    {
+        return $this->hasMany(PointRedemptions::class, 'processed_by');
     }
 }
