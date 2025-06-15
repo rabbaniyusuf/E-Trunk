@@ -10,7 +10,7 @@ class WasteBinType extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['waste_bin_id', 'type', 'current_height_cm', 'max_height_cm', 'current_percentage', 'last_sensor_reading'];
+    protected $fillable = ['bin_id', 'type', 'current_height_cm', 'max_height_cm', 'current_percentage', 'last_sensor_reading'];
 
     protected function casts(): array
     {
@@ -23,7 +23,7 @@ class WasteBinType extends Model
     }
 
     // Relationships
-    public function wasteBin()
+    public function bin()
     {
         return $this->belongsTo(Bin::class);
     }

@@ -14,7 +14,7 @@ return new class extends Migration
        Schema::create('notifications', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
-            $table->enum('type', ['waste_full', 'point_deposit', 'point_redemption', 'schedule_assigned', 'schedule_completed']);
+            $table->enum('type', ['waste_full', 'point_deposit', 'point_redemption', 'schedule_assigned', 'schedule_completed', 'waste_collection_request']);
             $table->string('title');
             $table->text('message');
             $table->json('data')->nullable();

@@ -74,7 +74,7 @@ class UserController extends Controller
 
         // Get recent transactions (last 5)
         $data['recentTransactions'] = PointTransactions::where('user_id', $user->id)
-            ->with(['wasteBinType.wasteBin'])
+            ->with(['wasteBinType.bin'])
             ->orderBy('created_at', 'desc')
             ->limit(5)
             ->get();
@@ -131,7 +131,7 @@ class UserController extends Controller
         $wasteBinType = WasteBinType::findOrFail($request->waste_bin_type_id);
 
         // Verify the waste bin belongs to the user
-        if ($wasteBinType->wasteBin->bin_code !== $user->waste_bin_code) {
+        if ($wasteBinType->bin->bin_code !== $user->waste_bin_code) {
             return redirect()->back()->with('error', 'Anda tidak memiliki akses ke tempat sampah ini.');
         }
 
@@ -180,6 +180,7 @@ class UserController extends Controller
                 ->route('user.dashboard')
                 ->with('success', "Berhasil mengajukan penukaran {$request->percentage_to_deposit}% sampah menjadi {$points} poin. Menunggu konfirmasi admin.");
         } catch (\Exception $e) {
+            dd($e->getMessage());
             DB::rollback();
             return redirect()->back()->with('error', 'Terjadi kesalahan saat memproses permintaan.');
         }

@@ -32,7 +32,7 @@ class Bin extends Model
 
     public function wasteBinTypes()
     {
-        return $this->hasMany(WasteBinType::class);
+        return $this->hasMany(WasteBinType::class, 'bin_id', 'id');
     }
 
     public function schedules()
