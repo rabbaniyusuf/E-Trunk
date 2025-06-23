@@ -5,8 +5,10 @@ namespace App\Http\Controllers;
 use Carbon\Carbon;
 use App\Models\Bin;
 use App\Models\User;
+use App\Models\Notification;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rules\Password;
@@ -15,7 +17,23 @@ class AdminController extends Controller
 {
     public function dashboard()
     {
-        return view('admin.dashboard.index');
+        // Get recent notifications for sidebar/quick view
+        $recentNotifications = Notification::where('user_id', Auth::id())->orderBy('created_at', 'desc')->take(5)->get();
+
+        $unreadNotificationCount = Notification::where('user_id', Auth::id())->unread()->count();
+
+        // Sample statistics (replace with actual data from your models)
+        $statistics = [
+            'total_users' => 150,
+            'total_transactions' => 45,
+            'daily_waste' => '1.2kg',
+            'active_officers' => 8,
+            'total_balance' => 2500000,
+            'recyclable_waste' => 1247,
+            'non_recyclable_waste' => 328,
+        ];
+
+        return view('admin.dashboard.index', compact('recentNotifications', 'unreadNotificationCount', 'statistics'));
     }
 
     public function index(Request $request)

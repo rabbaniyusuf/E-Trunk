@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\ApprovalController;
+use App\Http\Controllers\NotificationController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\HomeController;
@@ -62,12 +64,32 @@ Route::middleware('auth')->group(function () {
         ->group(function () {
             // Dashboard Admin
             Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('dashboard');
-            Route::prefix('users')->name('users.')->group(function () {
-                Route::get('/', [AdminController::class, 'index'])->name('index');
-                Route::get('/create', [AdminController::class, 'create'])->name(name: 'create');
-                Route::post('/create', [AdminController::class, 'store'])->name(name: 'store');
-                Route::get('/{user}/edit', [AdminController::class, 'edit'])->name('edit');
-            });
+            Route::prefix('users')
+                ->name('users.')
+                ->group(function () {
+                    Route::get('/', [AdminController::class, 'index'])->name('index');
+                    Route::get('/create', [AdminController::class, 'create'])->name(name: 'create');
+                    Route::post('/create', [AdminController::class, 'store'])->name(name: 'store');
+                    Route::get('/{user}/edit', [AdminController::class, 'edit'])->name('edit');
+                });
+
+            Route::prefix('notifications')
+                ->name('notifications.')
+                ->group(function () {
+                    Route::get('/', [NotificationController::class, 'index'])->name('index');
+                    Route::put('/{notification}/read', [NotificationController::class, 'markAsRead'])->name('read');
+                    Route::post('/mark-all-read', [NotificationController::class, 'markAllAsRead'])->name('markAllRead');
+                    Route::get('/unread-count', [NotificationController::class, 'getUnreadCount'])->name('unreadCount');
+                });
+
+            Route::prefix('approvals')
+                ->name('approvals.')
+                ->group(function () {
+                    Route::get('/', [ApprovalController::class, 'index'])->name('index');
+                    Route::get('/{approval}/edit', [ApprovalController::class, 'edit'])->name('edit');
+                    Route::put('/{approval}', [ApprovalController::class, 'update'])->name('update');
+                    Route::post('/approval/bulk-update', [ApprovalController::class, 'bulkUpdate'])->name('bulk-update');
+                });
 
             // User Management
             Route::resource('users', AdminController::class)->except(['show']);
