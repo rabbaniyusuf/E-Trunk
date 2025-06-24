@@ -4,23 +4,21 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\PointTransactions;
+use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 
 class ApprovalController extends Controller
 {
-public function index(Request $request)
+    public function index(Request $request)
     {
-        $query = PointTransactions::with(['user', 'wasteBinType'])
-            ->where('transaction_type', 'withdrawal')
+        $query = PointTransactions::with(['user', 'wasteBinType.bin', 'processedBy'])
+            ->where('transaction_type', 'deposit') // Menggunakan deposit untuk approval penukaran poin
             ->orderBy('created_at', 'desc');
 
         // Filter berdasarkan status
         if ($request->filled('status')) {
             $query->where('status', $request->status);
-        } else {
-            // Default tampilkan yang pending
-            $query->where('status', 'pending');
         }
 
         // Filter berdasarkan tanggal
@@ -32,22 +30,30 @@ public function index(Request $request)
             $query->whereDate('created_at', '<=', $request->date_to);
         }
 
-        // Search berdasarkan nama user
+        // Search berdasarkan nama user atau email
         if ($request->filled('search')) {
-            $query->whereHas('user', function($q) use ($request) {
+            $query->whereHas('user', function ($q) use ($request) {
                 $q->where('name', 'like', '%' . $request->search . '%')
                   ->orWhere('email', 'like', '%' . $request->search . '%');
             });
         }
 
-        $approvals = $query->paginate(15)->withQueryString();
+        $approvals = $query->paginate(12)->withQueryString();
 
         // Statistik untuk dashboard
         $stats = [
-            'pending' => PointTransactions::where('transaction_type', 'withdrawal')->where('status', 'pending')->count(),
-            'approved' => PointTransactions::where('transaction_type', 'withdrawal')->where('status', 'approved')->count(),
-            'rejected' => PointTransactions::where('transaction_type', 'withdrawal')->where('status', 'rejected')->count(),
-            'total_points_pending' => PointTransactions::where('transaction_type', 'withdrawal')->where('status', 'pending')->sum('points'),
+            'pending' => PointTransactions::where('transaction_type', 'deposit')
+                ->where('status', 'pending')
+                ->count(),
+            'approved' => PointTransactions::where('transaction_type', 'deposit')
+                ->where('status', 'approved')
+                ->count(),
+            'rejected' => PointTransactions::where('transaction_type', 'deposit')
+                ->where('status', 'rejected')
+                ->count(),
+            'total_points_pending' => PointTransactions::where('transaction_type', 'deposit')
+                ->where('status', 'pending')
+                ->sum('points'),
         ];
 
         return view('admin.approvals.index', compact('approvals', 'stats'));
@@ -55,13 +61,13 @@ public function index(Request $request)
 
     public function edit(PointTransactions $approval)
     {
-        // Pastikan ini adalah transaksi withdrawal
-        if ($approval->transaction_type !== 'withdrawal') {
+        // Pastikan ini adalah transaksi deposit
+        if ($approval->transaction_type !== 'deposit') {
             return redirect()->route('admin.approvals.index')
                 ->with('error', 'Transaksi ini bukan permintaan penukaran poin.');
         }
 
-        $approval->load(['user', 'wasteBinType']);
+        $approval->load(['user', 'wasteBinType.bin']);
 
         return view('admin.approvals.edit', compact('approval'));
     }
@@ -73,8 +79,8 @@ public function index(Request $request)
             'admin_notes' => 'nullable|string|max:500',
         ]);
 
-        // Pastikan ini adalah transaksi withdrawal yang masih pending
-        if ($approval->transaction_type !== 'withdrawal' || $approval->status !== 'pending') {
+        // Pastikan ini adalah transaksi deposit yang masih pending
+        if ($approval->transaction_type !== 'deposit' || $approval->status !== 'pending') {
             return redirect()->route('admin.approvals.index')
                 ->with('error', 'Transaksi ini tidak dapat diproses.');
         }
@@ -85,16 +91,9 @@ public function index(Request $request)
             $user = $approval->user;
 
             if ($request->status === 'approved') {
-                // Cek apakah user memiliki poin yang cukup
-                if ($user->points < $approval->points) {
-                    return redirect()->back()
-                        ->with('error', 'User tidak memiliki cukup poin untuk transaksi ini.');
-                }
-
-                // Kurangi poin user
-                $user->decrement('points', $approval->points);
-
-                $message = 'Permintaan penukaran poin berhasil disetujui.';
+                // Tambahkan poin ke user (karena ini adalah deposit/penukaran sampah ke poin)
+                $user->increment('balance', $approval->points);
+                $message = 'Permintaan penukaran poin berhasil disetujui dan poin telah ditambahkan ke saldo user.';
             } else {
                 $message = 'Permintaan penukaran poin telah ditolak.';
             }
@@ -111,13 +110,13 @@ public function index(Request $request)
 
             DB::commit();
 
-            return redirect()->route('admin.approvals.index')
-                ->with('success', $message);
+            return redirect()->route('admin.approvals.index')->with('success', $message);
 
         } catch (\Exception $e) {
             DB::rollback();
 
-            return redirect()->back()
+            return redirect()
+                ->back()
                 ->with('error', 'Terjadi kesalahan saat memproses approval: ' . $e->getMessage());
         }
     }
@@ -132,7 +131,7 @@ public function index(Request $request)
         ]);
 
         $approvals = PointTransactions::whereIn('id', $request->selected_approvals)
-            ->where('transaction_type', 'withdrawal')
+            ->where('transaction_type', 'deposit')
             ->where('status', 'pending')
             ->get();
 
@@ -145,24 +144,18 @@ public function index(Request $request)
 
         try {
             $processedCount = 0;
-            $failedCount = 0;
+            $totalPoints = 0;
 
             foreach ($approvals as $approval) {
                 $user = $approval->user;
 
                 if ($request->bulk_action === 'approve') {
-                    // Cek poin user
-                    if ($user->points >= $approval->points) {
-                        $user->decrement('points', $approval->points);
-                        $status = 'approved';
-                        $processedCount++;
-                    } else {
-                        $failedCount++;
-                        continue;
-                    }
+                    // Tambahkan poin ke user
+                    $user->increment('balance', $approval->points);
+                    $totalPoints += $approval->points;
+                    $status = 'approved';
                 } else {
                     $status = 'rejected';
-                    $processedCount++;
                 }
 
                 // Update approval
@@ -174,23 +167,87 @@ public function index(Request $request)
                         $approval->description . ' | Admin: ' . $request->bulk_notes :
                         $approval->description,
                 ]);
+
+                $processedCount++;
             }
 
             DB::commit();
 
-            $message = "Berhasil memproses {$processedCount} transaksi.";
-            if ($failedCount > 0) {
-                $message .= " {$failedCount} transaksi gagal karena poin tidak mencukupi.";
+            $actionText = $request->bulk_action === 'approve' ? 'disetujui' : 'ditolak';
+            $message = "Berhasil memproses {$processedCount} transaksi yang {$actionText}.";
+
+            if ($request->bulk_action === 'approve') {
+                $message .= " Total {$totalPoints} poin telah ditambahkan ke saldo user.";
             }
 
-            return redirect()->route('admin.approvals.index')
-                ->with('success', $message);
+            return redirect()->route('admin.approvals.index')->with('success', $message);
 
         } catch (\Exception $e) {
             DB::rollback();
 
             return redirect()->back()
-                ->with('error', 'Terjadi kesalahan saat memproses bulk approval.');
+                ->with('error', 'Terjadi kesalahan saat memproses bulk approval: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Get approval statistics for dashboard
+     */
+    public function getStats()
+    {
+        return [
+            'pending' => PointTransactions::deposit()->pending()->count(),
+            'approved' => PointTransactions::deposit()->approved()->count(),
+            'rejected' => PointTransactions::deposit()->where('status', 'rejected')->count(),
+            'total_points_pending' => PointTransactions::deposit()->pending()->sum('points'),
+            'total_points_approved' => PointTransactions::deposit()->approved()->sum('points'),
+        ];
+    }
+
+    /**
+     * Quick approve/reject for AJAX requests
+     */
+    public function quickUpdate(Request $request, PointTransactions $approval)
+    {
+        $request->validate([
+            'status' => 'required|in:approved,rejected',
+        ]);
+
+        if ($approval->transaction_type !== 'deposit' || $approval->status !== 'pending') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Transaksi tidak dapat diproses.'
+            ], 400);
+        }
+
+        DB::beginTransaction();
+
+        try {
+            if ($request->status === 'approved') {
+                $approval->user->increment('balance', $approval->points);
+            }
+
+            $approval->update([
+                'status' => $request->status,
+                'processed_by' => Auth::id(),
+                'processed_at' => now(),
+            ]);
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Transaksi berhasil diproses.',
+                'status' => $request->status
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollback();
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Terjadi kesalahan saat memproses transaksi.'
+            ], 500);
         }
     }
 }

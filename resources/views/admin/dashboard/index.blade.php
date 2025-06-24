@@ -139,6 +139,19 @@
             transform: translateY(-2px);
         }
 
+        .btn-danger-custom {
+            background-color: var(--danger-color);
+            border-color: var(--danger-color);
+            color: white;
+        }
+
+        .btn-danger-custom:hover {
+            background-color: #dc2626;
+            border-color: #dc2626;
+            color: white;
+            transform: translateY(-2px);
+        }
+
         .btn-warning-custom {
             background-color: var(--warning-color);
             border-color: var(--warning-color);

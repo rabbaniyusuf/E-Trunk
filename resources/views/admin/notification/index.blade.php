@@ -122,12 +122,17 @@
             transition: all 0.3s ease;
         }
 
+        .btn-action:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
         .btn-approve {
             background-color: var(--success-color);
             color: white;
         }
 
-        .btn-approve:hover {
+        .btn-approve:hover:not(:disabled) {
             background-color: #059669;
         }
 
@@ -136,7 +141,7 @@
             color: white;
         }
 
-        .btn-reject:hover {
+        .btn-reject:hover:not(:disabled) {
             background-color: #dc2626;
         }
 
@@ -145,7 +150,7 @@
             color: white;
         }
 
-        .btn-mark-read:hover {
+        .btn-mark-read:hover:not(:disabled) {
             background-color: #475569;
         }
 
@@ -322,24 +327,7 @@
             if (markAllReadBtn) {
                 markAllReadBtn.addEventListener('click', function() {
                     if (confirm('Tandai semua notifikasi sebagai dibaca?')) {
-                        fetch('{{ route('admin.notifications.markAllRead') }}', {
-                                method: 'POST',
-                                headers: {
-                                    'Content-Type': 'application/json',
-                                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')
-                                        .getAttribute('content')
-                                }
-                            })
-                            .then(response => response.json())
-                            .then(data => {
-                                if (data.success) {
-                                    location.reload();
-                                }
-                            })
-                            .catch(error => {
-                                console.error('Error:', error);
-                                alert('Terjadi kesalahan. Silakan coba lagi.');
-                            });
+                        markAllAsRead();
                     }
                 });
             }
@@ -353,66 +341,80 @@
                     const notificationId = notificationItem.getAttribute('data-notification-id');
 
                     // Disable button to prevent double clicks
-                    this.disabled = true;
-                    this.innerHTML = '<i class="bi bi-hourglass-split me-1"></i>Memproses...';
+                    disableButton(this);
 
                     if (action === 'mark-read') {
-                        markAsRead(notificationId, notificationItem);
+                        markAsRead(notificationId, notificationItem, this);
                     } else if (action === 'approve' || action === 'reject') {
-                        handleApprovalAction(action, id, notificationId, notificationItem);
+                        handleApprovalAction(action, id, notificationId, notificationItem, this);
                     }
                 });
             });
 
-            function markAsRead(notificationId, notificationItem) {
-                fetch(`{{ route('admin.notifications.read', ':id') }}`.replace(':id', notificationId), {
+            function markAllAsRead() {
+                showLoading('Menandai semua notifikasi...');
+
+                fetch('/admin/notifications/mark-all-read', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': getCSRFToken()
+                        }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        hideLoading();
+                        if (data.success) {
+                            showToast(data.message, 'success');
+                            setTimeout(() => {
+                                location.reload();
+                            }, 1000);
+                        } else {
+                            showToast(data.message || 'Terjadi kesalahan', 'error');
+                        }
+                    })
+                    .catch(error => {
+                        hideLoading();
+                        console.error('Error:', error);
+                        showToast('Terjadi kesalahan jaringan. Silakan coba lagi.', 'error');
+                    });
+            }
+
+            function markAsRead(notificationId, notificationItem, button) {
+                fetch(`/admin/notifications/${notificationId}/read`, {
                         method: 'PUT',
                         headers: {
                             'Content-Type': 'application/json',
-                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute(
-                                'content')
+                            'X-CSRF-TOKEN': getCSRFToken()
                         }
                     })
                     .then(response => response.json())
                     .then(data => {
                         if (data.success) {
                             // Update UI
-                            notificationItem.classList.remove('unread');
-                            const metaElement = notificationItem.querySelector(
-                                '.notification-meta span:last-child');
-                            metaElement.innerHTML = '<i class="bi bi-check-circle me-1"></i>Dibaca';
-                            metaElement.className = 'text-success';
-
-                            // Remove action buttons
-                            const actionsElement = notificationItem.querySelector('.notification-actions');
-                            if (actionsElement) {
-                                actionsElement.remove();
-                            }
-
-                            // Update unread count in navbar
+                            updateNotificationUI(notificationItem);
                             updateUnreadCount();
+                            showToast(data.message, 'success');
+                        } else {
+                            showToast(data.message || 'Terjadi kesalahan', 'error');
+                            enableButton(button, 'mark-read');
                         }
                     })
                     .catch(error => {
                         console.error('Error:', error);
-                        alert('Terjadi kesalahan. Silakan coba lagi.');
-                        // Re-enable button
-                        const button = notificationItem.querySelector('.btn-mark-read');
-                        button.disabled = false;
-                        button.innerHTML = '<i class="bi bi-check me-1"></i>Tandai Dibaca';
+                        showToast('Terjadi kesalahan jaringan. Silakan coba lagi.', 'error');
+                        enableButton(button, 'mark-read');
                     });
             }
 
-            function handleApprovalAction(action, requestId, notificationId, notificationItem) {
-                // You would replace this with your actual approval endpoint
+            function handleApprovalAction(action, requestId, notificationId, notificationItem, button) {
                 const endpoint = action === 'approve' ? '/admin/approve-request' : '/admin/reject-request';
 
                 fetch(endpoint, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
-                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute(
-                                'content')
+                            'X-CSRF-TOKEN': getCSRFToken()
                         },
                         body: JSON.stringify({
                             request_id: requestId,
@@ -422,10 +424,9 @@
                     .then(response => response.json())
                     .then(data => {
                         if (data.success) {
-                            // Mark notification as read
-                            markAsRead(notificationId, notificationItem);
-
-                            // Show success message
+                            // Update notification UI
+                            updateNotificationUI(notificationItem);
+                            updateUnreadCount();
                             showToast(data.message || (action === 'approve' ? 'Permintaan disetujui' :
                                 'Permintaan ditolak'), 'success');
                         } else {
@@ -435,44 +436,101 @@
                     .catch(error => {
                         console.error('Error:', error);
                         showToast(error.message || 'Terjadi kesalahan. Silakan coba lagi.', 'error');
-
-                        // Re-enable buttons
-                        notificationItem.querySelectorAll('.btn-action').forEach(btn => {
-                            btn.disabled = false;
-                            if (btn.getAttribute('data-action') === action) {
-                                btn.innerHTML = action === 'approve' ?
-                                    '<i class="bi bi-check-lg me-1"></i>Setujui' :
-                                    '<i class="bi bi-x-lg me-1"></i>Tolak';
-                            }
-                        });
+                        enableApprovalButtons(notificationItem);
                     });
+            }
+
+            function updateNotificationUI(notificationItem) {
+                // Remove unread class
+                notificationItem.classList.remove('unread');
+
+                // Update status
+                const metaElement = notificationItem.querySelector('.notification-meta span:last-child');
+                if (metaElement) {
+                    metaElement.innerHTML = '<i class="bi bi-check-circle me-1"></i>Dibaca';
+                    metaElement.className = 'text-success';
+                }
+
+                // Remove action buttons
+                const actionsElement = notificationItem.querySelector('.notification-actions');
+                if (actionsElement) {
+                    actionsElement.remove();
+                }
             }
 
             function updateUnreadCount() {
-                fetch('{{ route('admin.notifications.unreadCount') }}')
+                fetch('/admin/notifications/unread-count')
                     .then(response => response.json())
                     .then(data => {
-                        const badges = document.querySelectorAll('.notification-badge');
-                        badges.forEach(badge => {
-                            if (data.count > 0) {
-                                badge.textContent = data.count > 9 ? '9+' : data.count;
-                                badge.style.display = 'inline';
-                            } else {
-                                badge.style.display = 'none';
+                        if (data.success) {
+                            const badges = document.querySelectorAll('.notification-badge');
+                            badges.forEach(badge => {
+                                if (data.count > 0) {
+                                    badge.textContent = data.count > 9 ? '9+' : data.count;
+                                    badge.style.display = 'inline';
+                                } else {
+                                    badge.style.display = 'none';
+                                }
+                            });
+
+                            // Update mark all button
+                            const markAllBtn = document.getElementById('markAllRead');
+                            if (markAllBtn) {
+                                if (data.count > 0) {
+                                    markAllBtn.innerHTML =
+                                        `<i class="bi bi-check-all me-1"></i>Tandai Semua Dibaca (${data.count})`;
+                                } else {
+                                    markAllBtn.style.display = 'none';
+                                }
                             }
-                        });
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error updating unread count:', error);
                     });
             }
 
+            function disableButton(button) {
+                button.disabled = true;
+                button.innerHTML = '<i class="bi bi-hourglass-split me-1"></i>Memproses...';
+            }
+
+            function enableButton(button, action) {
+                button.disabled = false;
+                const buttonTexts = {
+                    'mark-read': '<i class="bi bi-check me-1"></i>Tandai Dibaca',
+                    'approve': '<i class="bi bi-check-lg me-1"></i>Setujui',
+                    'reject': '<i class="bi bi-x-lg me-1"></i>Tolak'
+                };
+                button.innerHTML = buttonTexts[action] || 'Action';
+            }
+
+            function enableApprovalButtons(notificationItem) {
+                const approveBtn = notificationItem.querySelector('[data-action="approve"]');
+                const rejectBtn = notificationItem.querySelector('[data-action="reject"]');
+
+                if (approveBtn) enableButton(approveBtn, 'approve');
+                if (rejectBtn) enableButton(rejectBtn, 'reject');
+            }
+
+            function getCSRFToken() {
+                const token = document.querySelector('meta[name="csrf-token"]');
+                return token ? token.getAttribute('content') : '';
+            }
+
             function showToast(message, type = 'info') {
-                // Simple toast notification
+                // Remove existing toasts
+                document.querySelectorAll('.toast-notification').forEach(toast => {
+                    toast.remove();
+                });
+
                 const toast = document.createElement('div');
                 toast.className =
-                    `alert alert-${type === 'success' ? 'success' : 'danger'} alert-dismissible fade show position-fixed`;
+                    `toast-notification alert alert-${type === 'success' ? 'success' : 'danger'} alert-dismissible fade show position-fixed`;
                 toast.style.cssText = 'top: 100px; right: 20px; z-index: 9999; min-width: 300px;';
                 toast.innerHTML = `
             ${message}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         `;
 
                 document.body.appendChild(toast);
@@ -480,9 +538,33 @@
                 // Auto remove after 5 seconds
                 setTimeout(() => {
                     if (toast.parentNode) {
-                        toast.parentNode.removeChild(toast);
+                        toast.remove();
                     }
                 }, 5000);
+            }
+
+            function showLoading(message = 'Memproses...') {
+                const loading = document.createElement('div');
+                loading.id = 'loading-overlay';
+                loading.className =
+                    'position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center';
+                loading.style.cssText = 'background: rgba(0,0,0,0.5); z-index: 9999;';
+                loading.innerHTML = `
+            <div class="text-center text-white">
+                <div class="spinner-border mb-2" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <div>${message}</div>
+            </div>
+        `;
+                document.body.appendChild(loading);
+            }
+
+            function hideLoading() {
+                const loading = document.getElementById('loading-overlay');
+                if (loading) {
+                    loading.remove();
+                }
             }
         });
     </script>
@@ -511,4 +593,3 @@
         };
     }
 @endphp
-
