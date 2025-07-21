@@ -1,3 +1,4 @@
+{{-- main.blade.php --}}
 <!DOCTYPE html>
 <html lang="id">
 

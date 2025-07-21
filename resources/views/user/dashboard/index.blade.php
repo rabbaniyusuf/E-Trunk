@@ -373,6 +373,95 @@
         .bin-status.full .bin-status-dot {
             background-color: var(--danger-color);
         }
+
+        .activity-icon.success {
+            background-color: #dcfce7;
+            color: #16a34a;
+        }
+
+        .activity-icon.danger {
+            background-color: #fee2e2;
+            color: #dc2626;
+        }
+
+        .activity-icon.warning {
+            background-color: #fef3c7;
+            color: #d97706;
+        }
+
+        .activity-icon.secondary {
+            background-color: #f8fafc;
+            color: #64748b;
+        }
+
+        .status-badge.status-menunggu-diambil,
+        .status-badge.status-pending {
+            background-color: #fef3c7;
+            color: #92400e;
+        }
+
+        .status-badge.status-sudah-diambil,
+        .status-badge.status-approved,
+        .status-badge.status-completed {
+            background-color: #dcfce7;
+            color: #166534;
+        }
+
+        .status-badge.status-gagal-diambil,
+        .status-badge.status-rejected,
+        .status-badge.status-cancelled {
+            background-color: #fee2e2;
+            color: #991b1b;
+        }
+
+        .status-badge.status-processing {
+            background-color: #e0f2fe;
+            color: #0369a1;
+        }
+
+        .activity-item .activity-icon {
+            transition: all 0.3s ease;
+        }
+
+        .activity-item:hover .activity-icon {
+            transform: scale(1.1);
+        }
+
+        .text-success {
+            color: #16a34a !important;
+        }
+
+        .text-danger {
+            color: #dc2626 !important;
+        }
+
+        .text-warning {
+            color: #d97706 !important;
+        }
+
+        .text-secondary {
+            color: #64748b !important;
+        }
+
+        /* Mobile responsiveness improvements */
+        @media (max-width: 576px) {
+            .activity-item {
+                padding: 1rem 0.5rem;
+            }
+
+            .activity-item .d-flex {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+
+            .activity-item .text-end {
+                text-align: left !important;
+            }
+
+            .status-badge {
+                align-self: flex-start;
+            }
+        }
     </style>
 @endpush
 
@@ -510,48 +599,96 @@
                 @if ($recentTransactions->count() > 0)
                     @foreach ($recentTransactions as $transaction)
                         <div class="activity-item">
-                            <div class="activity-icon {{ $transaction->transaction_type }}">
+                            <div class="activity-icon {{ $transaction->getTypeColor() }}">
                                 <i
-                                    class="bi {{ $transaction->transaction_type == 'deposit' ? 'bi-arrow-up' : 'bi-arrow-down' }}"></i>
+                                    class="bi {{ $transaction->transaction_type == 'deposit' ? 'bi-plus-circle' : 'bi-dash-circle' }}"></i>
                             </div>
                             <div class="flex-grow-1">
                                 <div class="d-flex justify-content-between align-items-start">
                                     <div>
                                         <h6 class="mb-1">
-                                            {{ $transaction->transaction_type == 'deposit' ? 'Nabung Poin' : 'Penarikan Poin' }}
+                                            {{ $transaction->getTypeLabel() }}
+                                            @if ($transaction->wasteBinType)
+                                                - {{ ucfirst($transaction->wasteBinType->type) }}
+                                            @endif
+                                        </h6>
+                                        <small class="text-muted d-block">
+                                            {{ $transaction->created_at->format('d M Y, H:i') }}
+                                            @if ($transaction->percentage_deposited && $transaction->transaction_type == 'deposit')
+                                                • {{ number_format($transaction->percentage_deposited, 1) }}% volume
+                                            @endif
+                                        </small>
+                                        @if ($transaction->description)
+                                            <small class="text-muted d-block mt-1">{{ $transaction->description }}</small>
+                                        @endif
                                     </div>
-                                    <small class="text-muted d-block">
-                                        {{ $transaction->wasteBinType ? ucfirst($transaction->wasteBinType->type) : 'N/A' }}
-                                        •
-                                        {{ $transaction->created_at->format('d M Y, H:i') }}
-                                    </small>
-                                    @if ($transaction->description)
-                                        <small class="text-muted d-block">{{ $transaction->description }}</small>
-                                    @endif
-                                </div>
-                                <div class="text-end">
-                                    <div
-                                        class="fw-semibold {{ $transaction->transaction_type == 'deposit' ? 'text-success' : 'text-danger' }}">
-                                        {{ $transaction->transaction_type == 'deposit' ? '+' : '-' }}{{ number_format($transaction->points) }}
-                                        poin
+                                    <div class="text-end">
+                                        <div class="fw-semibold text-{{ $transaction->getTypeColor() }}">
+                                            {{ $transaction->transaction_type == 'deposit' ? '+' : '-' }}{{ number_format($transaction->points) }}
+                                            poin
+                                        </div>
+                                        <span
+                                            class="status-badge status-{{ strtolower(str_replace('_', '-', $transaction->status)) }} {{ $transaction->getStatusBadgeClass() }}">
+                                            {{ $transaction->getStatusLabel() }}
+                                        </span>
                                     </div>
-                                    <span class="status-badge status-{{ $transaction->status }}">
-                                        {{ ucfirst($transaction->status) }}
-                                    </span>
                                 </div>
                             </div>
                         </div>
+                    @endforeach
+
+                    {{-- Show Point Redemptions if available --}}
+                    @if (isset($recentRedemptions) && $recentRedemptions->count() > 0)
+                        <hr class="my-3">
+                        <h6 class="text-muted mb-3">Penukaran Poin Terbaru</h6>
+                        @foreach ($recentRedemptions as $redemption)
+                            <div class="activity-item">
+                                <div class="activity-icon withdrawal">
+                                    <i class="bi bi-gift"></i>
+                                </div>
+                                <div class="flex-grow-1">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div>
+                                            <h6 class="mb-1">
+                                                Penukaran {{ ucfirst($redemption->redemption_type) }}
+                                            </h6>
+                                            <small class="text-muted d-block">
+                                                {{ $redemption->created_at->format('d M Y, H:i') }}
+                                                @if ($redemption->cash_value)
+                                                    • Rp {{ number_format($redemption->cash_value, 0, ',', '.') }}
+                                                @endif
+                                            </small>
+                                            @if ($redemption->notes)
+                                                <small class="text-muted d-block mt-1">{{ $redemption->notes }}</small>
+                                            @endif
+                                        </div>
+                                        <div class="text-end">
+                                            <div class="fw-semibold text-warning">
+                                                -{{ number_format($redemption->points_redeemed) }} poin
+                                            </div>
+                                            <span class="status-badge status-{{ $redemption->status }}">
+                                                {{ ucfirst($redemption->status) }}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        @endforeach
+                    @endif
+                @else
+                    <div class="empty-state">
+                        <i class="bi bi-clock-history"></i>
+                        <h6>Belum ada aktivitas</h6>
+                        <p class="text-muted mb-0">Mulai nabung sampah untuk melihat aktivitas Anda.</p>
+                        <div class="mt-3">
+                            <a href="{{ route('user.nabung') }}" class="btn btn-primary btn-sm">
+                                <i class="bi bi-plus-circle"></i> Mulai Nabung
+                            </a>
+                        </div>
+                    </div>
+                @endif
             </div>
-            @endforeach
-        @else
-            <div class="empty-state">
-                <i class="bi bi-clock-history"></i>
-                <h6>Belum ada aktivitas</h6>
-                <p class="text-muted mb-0">Mulai nabung sampah untuk melihat aktivitas Anda.</p>
-            </div>
-            @endif
         </div>
-    </div>
     </div>
 @endsection
 
