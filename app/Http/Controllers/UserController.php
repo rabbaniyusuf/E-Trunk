@@ -24,87 +24,148 @@ class UserController extends Controller
     {
         $user = Auth::user();
 
-        // Get user's waste bin
-        $userBin = $user->wasteBin;
+        // Get user's available points
+        $availablePoints = $this->calculateAvailablePoints($user);
 
-        // Initialize default values
-        $data = [
-            'balance' => $user->balance ?? 0,
-            'recyclePercentage' => 0,
-            'nonRecyclePercentage' => 0,
-            'totalWasteVolume' => 0,
-            'monthlyGrowth' => 0,
-            'recentTransactions' => collect(),
-            'availablePoints' => 0,
-            'totalEarned' => 0,
-            'totalRedeemed' => 0,
-        ];
+        // Get monthly growth percentage
+        $monthlyGrowth = $this->calculateMonthlyGrowth($user);
 
-        if ($userBin) {
-            // Get waste bin types (recycle and non-recycle)
-            $recycleBin = $userBin->getRecycleBin();
-            $nonRecycleBin = $userBin->getNonRecycleBin();
+        // Get sensor readings for waste bin percentages
+        $wasteBinData = $this->getWasteBinData();
 
-            // Get current percentages
-            $data['recyclePercentage'] = $recycleBin ? $recycleBin->current_percentage : 0;
-            $data['nonRecyclePercentage'] = $nonRecycleBin ? $nonRecycleBin->current_percentage : 0;
+        // Get recent transactions (last 10)
+        $recentTransactions = PointTransactions::with(['wasteBinType', 'user'])
+            ->where('user_id', $user->id)
+            ->orderBy('created_at', 'desc')
+            ->limit(10)
+            ->get();
 
-            // Calculate total volume based on current height and bin capacity
-            if ($recycleBin && $nonRecycleBin) {
-                $recycleVolume = ($recycleBin->current_height_cm / $recycleBin->max_height_cm) * ($userBin->capacity_liters / 2);
-                $nonRecycleVolume = ($nonRecycleBin->current_height_cm / $nonRecycleBin->max_height_cm) * ($userBin->capacity_liters / 2);
-                $data['totalWasteVolume'] = $recycleVolume + $nonRecycleVolume;
-            }
-
-            // Get monthly growth (compare current month vs last month)
-            $currentMonth = now()->startOfMonth();
-            $lastMonth = now()->subMonth()->startOfMonth();
-
-            $currentMonthEarned = PointTransactions::where('user_id', $user->id)->where('transaction_type', 'deposit')->where('status', 'approved')->where('created_at', '>=', $currentMonth)->sum('points');
-
-            $lastMonthEarned = PointTransactions::where('user_id', $user->id)
-                ->where('transaction_type', 'deposit')
-                ->where('status', 'approved')
-                ->whereBetween('created_at', [$lastMonth, $currentMonth])
-                ->sum('points');
-
-            $data['monthlyGrowth'] = $lastMonthEarned > 0 ? round((($currentMonthEarned - $lastMonthEarned) / $lastMonthEarned) * 100, 1) : ($currentMonthEarned > 0 ? 100 : 0);
-        }
-
-        // Get point statistics
-        $data['totalEarned'] = PointTransactions::where('user_id', $user->id)->where('transaction_type', 'deposit')->where('status', 'approved')->sum('points');
-
-        $data['totalRedeemed'] = PointRedemptions::where('user_id', $user->id)->where('status', 'completed')->sum('points_redeemed');
-
-        $data['availablePoints'] = $data['totalEarned'] - $data['totalRedeemed'];
-
-        // Get recent transactions (last 5)
-        $data['recentTransactions'] = PointTransactions::where('user_id', $user->id)
-            ->with(['wasteBinType.bin'])
+        // Get recent redemptions (last 5)
+        $recentRedemptions = PointRedemptions::with(['user'])
+            ->where('user_id', $user->id)
             ->orderBy('created_at', 'desc')
             ->limit(5)
             ->get();
 
-        // Get recent sensor readings for chart data
-        $data['sensorData'] = [];
-        if ($userBin) {
-            $wasteBinTypes = $userBin->wasteBinTypes;
-            foreach ($wasteBinTypes as $binType) {
-                $readings = SensorReadings::where('waste_bin_type_id', $binType->id)
-                    ->where('reading_time', '>=', now()->subDays(7))
-                    ->orderBy('reading_time', 'asc')
-                    ->get(['reading_time', 'percentage']);
+        return view('user.dashboard.index', compact(
+            'availablePoints',
+            'monthlyGrowth',
+            'recentTransactions',
+            'recentRedemptions',
+            'wasteBinData'
+        ) + $wasteBinData);
+    }
 
-                $data['sensorData'][$binType->type] = $readings->map(function ($reading) {
-                    return [
-                        'time' => $reading->reading_time->format('Y-m-d H:i'),
-                        'percentage' => $reading->percentage,
-                    ];
-                });
-            }
+     private function calculateAvailablePoints(User $user): int
+    {
+        // Calculate total points from approved deposits
+        $totalDeposits = PointTransactions::where('user_id', $user->id)
+            ->where('transaction_type', 'deposit')
+            ->where('status', PointTransactions::STATUS_APPROVED)
+            ->sum('points');
+
+        // Calculate total points from approved withdrawals
+        $totalWithdrawals = PointTransactions::where('user_id', $user->id)
+            ->where('transaction_type', 'withdrawal')
+            ->where('status', PointTransactions::STATUS_APPROVED)
+            ->sum('points');
+
+        // Calculate total redeemed points
+        $totalRedemptions = PointRedemptions::where('user_id', $user->id)
+            ->whereIn('status', ['completed', 'approved'])
+            ->sum('points_redeemed');
+
+        return $totalDeposits - $totalWithdrawals - $totalRedemptions;
+    }
+
+    private function calculateMonthlyGrowth(User $user): float
+    {
+        $currentMonth = Carbon::now()->startOfMonth();
+        $previousMonth = Carbon::now()->subMonth()->startOfMonth();
+        $previousMonthEnd = Carbon::now()->subMonth()->endOfMonth();
+
+        // Current month points
+        $currentMonthPoints = PointTransactions::where('user_id', $user->id)
+            ->where('transaction_type', 'deposit')
+            ->where('status', PointTransactions::STATUS_APPROVED)
+            ->where('created_at', '>=', $currentMonth)
+            ->sum('points');
+
+        // Previous month points
+        $previousMonthPoints = PointTransactions::where('user_id', $user->id)
+            ->where('transaction_type', 'deposit')
+            ->where('status', PointTransactions::STATUS_APPROVED)
+            ->whereBetween('created_at', [$previousMonth, $previousMonthEnd])
+            ->sum('points');
+
+        if ($previousMonthPoints == 0) {
+            return $currentMonthPoints > 0 ? 100 : 0;
         }
 
-        return view('user.dashboard.index', $data);
+        return (($currentMonthPoints - $previousMonthPoints) / $previousMonthPoints) * 100;
+    }
+
+    private function getWasteBinData(): array
+    {
+        // Get latest sensor readings for each waste bin type
+        $recycleData = SensorReadings::with('wasteBinType')
+            ->whereHas('wasteBinType', function($query) {
+                $query->where('type', 'recycle');
+            })
+            ->latest('reading_time')
+            ->first();
+
+        $nonRecycleData = SensorReadings::with('wasteBinType')
+            ->whereHas('wasteBinType', function($query) {
+                $query->where('type', 'non_recycle');
+            })
+            ->latest('reading_time')
+            ->first();
+
+        $recyclePercentage = $recycleData ? $recycleData->percentage : 0;
+        $nonRecyclePercentage = $nonRecycleData ? $nonRecycleData->percentage : 0;
+
+        // Calculate total volume (assuming each bin has 50L capacity)
+        $totalWasteVolume = ($recyclePercentage + $nonRecyclePercentage) * 0.5;
+
+        return [
+            'recyclePercentage' => $recyclePercentage,
+            'nonRecyclePercentage' => $nonRecyclePercentage,
+            'totalWasteVolume' => $totalWasteVolume,
+            'recycleData' => $recycleData,
+            'nonRecycleData' => $nonRecycleData,
+        ];
+    }
+
+    public function refreshSensorData()
+    {
+        // AJAX endpoint untuk refresh data sensor secara real-time
+        $wasteBinData = $this->getWasteBinData();
+
+        return response()->json($wasteBinData);
+    }
+
+    public function getRecentActivity(Request $request)
+    {
+        $user = Auth::user();
+        $limit = $request->get('limit', 10);
+
+        $transactions = PointTransactions::with(['wasteBinType', 'user'])
+            ->where('user_id', $user->id)
+            ->orderBy('created_at', 'desc')
+            ->limit($limit)
+            ->get();
+
+        $redemptions = PointRedemptions::with(['user'])
+            ->where('user_id', $user->id)
+            ->orderBy('created_at', 'desc')
+            ->limit(5)
+            ->get();
+
+        return response()->json([
+            'transactions' => $transactions,
+            'redemptions' => $redemptions
+        ]);
     }
 
     public function nabung()
