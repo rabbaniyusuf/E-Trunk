@@ -9,7 +9,7 @@ class Schedules extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['petugas_id', 'user_id', 'waste_bin_id', 'point_redemption_id', 'schedule_type', 'scheduled_date', 'scheduled_time', 'priority', 'status', 'notes', 'completed_at'];
+    protected $fillable = ['petugas_id', 'user_id', 'bin_id', 'point_redemption_id', 'schedule_type', 'scheduled_date', 'scheduled_time', 'priority', 'status', 'notes', 'completed_at'];
 
     protected function casts(): array
     {
@@ -33,12 +33,12 @@ class Schedules extends Model
 
     public function wasteBin()
     {
-        return $this->belongsTo(WasteBin::class);
+        return $this->belongsTo(Bin::class);
     }
 
     public function pointRedemption()
     {
-        return $this->belongsTo(PointRedemption::class);
+        return $this->belongsTo(PointRedemptions::class);
     }
 
     // Scopes

@@ -40,7 +40,7 @@
                 <div class="d-lg-none">
                     {{-- Mobile Notification Button --}}
                     @role('petugas_pusat|petugas_kebersihan')
-                        <a href="{{ route('admin.notifications.index') }}"
+                        <a href="{{ route('notifications.index') }}"
                             class="btn btn-outline-secondary btn-sm me-2 position-relative">
                             <i class="bi bi-bell"></i>
                             @if (auth()->user()->unreadNotifications->count() > 0)
@@ -143,7 +143,7 @@
                         {{-- Desktop Notification --}}
                         @role('petugas_pusat|petugas_kebersihan')
                             <div class="me-3">
-                                <a href="{{ route('admin.notifications.index') }}"
+                                <a href="{{ route('notifications.index') }}"
                                     class="btn btn-outline-secondary position-relative">
                                     <i class="bi bi-bell"></i>
                                     @if (auth()->user()->unreadNotifications->count() > 0)

@@ -111,22 +111,6 @@
                                     </label>
                                     <div class="row g-3" id="wasteTypesContainer">
                                         <div class="col-md-4 col-sm-6">
-                                            <div class="card waste-type-option" data-waste-type="kardus">
-                                                <div class="card-body text-center p-3">
-                                                    <div class="bg-primary bg-opacity-10 rounded-circle p-3 mx-auto mb-3"
-                                                        style="width: 60px; height: 60px;">
-                                                        <i class="bi bi-box text-primary fs-4"></i>
-                                                    </div>
-                                                    <h6 class="mb-2">Kardus</h6>
-                                                    <div class="form-check d-flex justify-content-center">
-                                                        <input class="form-check-input waste-type-checkbox" type="checkbox"
-                                                            name="waste_types[]" value="kardus" id="kardus"
-                                                            {{ old('waste_types') && in_array('kardus', old('waste_types')) ? 'checked' : '' }}>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="col-md-4 col-sm-6">
                                             <div class="card waste-type-option" data-waste-type="plastik">
                                                 <div class="card-body text-center p-3">
                                                     <div class="bg-warning bg-opacity-10 rounded-circle p-3 mx-auto mb-3"

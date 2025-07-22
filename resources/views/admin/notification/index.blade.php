@@ -33,7 +33,7 @@
         }
 
         .notification-item.unread {
-            border-left-color: var(--primary-color);
+            border-left-color: var(--primary-color, #007bff);
             background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
         }
 
@@ -44,7 +44,7 @@
             right: 1rem;
             width: 8px;
             height: 8px;
-            background: var(--primary-color);
+            background: var(--primary-color, #007bff);
             border-radius: 50%;
         }
 
@@ -60,9 +60,9 @@
             flex-shrink: 0;
         }
 
-        .notification-icon.approval {
-            background-color: #dbeafe;
-            color: #2563eb;
+        .notification-icon.success {
+            background-color: #dcfce7;
+            color: #16a34a;
         }
 
         .notification-icon.warning {
@@ -70,14 +70,19 @@
             color: #d97706;
         }
 
-        .notification-icon.success {
-            background-color: #dcfce7;
-            color: #16a34a;
-        }
-
         .notification-icon.info {
             background-color: #e0f2fe;
             color: #0891b2;
+        }
+
+        .notification-icon.primary {
+            background-color: #dbeafe;
+            color: #2563eb;
+        }
+
+        .notification-icon.secondary {
+            background-color: #f1f5f9;
+            color: #64748b;
         }
 
         .notification-content {
@@ -127,31 +132,13 @@
             cursor: not-allowed;
         }
 
-        .btn-approve {
-            background-color: var(--success-color);
-            color: white;
-        }
-
-        .btn-approve:hover:not(:disabled) {
-            background-color: #059669;
-        }
-
-        .btn-reject {
-            background-color: var(--danger-color);
-            color: white;
-        }
-
-        .btn-reject:hover:not(:disabled) {
-            background-color: #dc2626;
-        }
-
         .btn-mark-read {
-            background-color: var(--secondary-color);
+            background-color: var(--secondary-color, #6c757d);
             color: white;
         }
 
         .btn-mark-read:hover:not(:disabled) {
-            background-color: #475569;
+            background-color: #5a6268;
         }
 
         .empty-state {
@@ -250,11 +237,11 @@
             <!-- Notifications List -->
             @if ($notifications->count() > 0)
                 @foreach ($notifications as $notification)
-                    <div class="notification-item {{ !$notification->isRead() ? 'unread' : '' }}"
+                    <div class="notification-item {{ $notification->isUnread() ? 'unread' : '' }}"
                         data-notification-id="{{ $notification->id }}">
                         <div class="d-flex">
-                            <div class="notification-icon {{ getNotificationIconClass($notification->type) }}">
-                                <i class="bi {{ getNotificationIcon($notification->type) }}"></i>
+                            <div class="notification-icon {{ $notification->getTypeColor() }}">
+                                <i class="{{ $notification->getIconClass() }}"></i>
                             </div>
                             <div class="notification-content">
                                 <div class="notification-title">
@@ -268,7 +255,7 @@
                                         <i class="bi bi-clock me-1"></i>
                                         {{ $notification->created_at->diffForHumans() }}
                                     </span>
-                                    @if ($notification->isRead())
+                                    @if (!$notification->isUnread())
                                         <span class="text-success">
                                             <i class="bi bi-check-circle me-1"></i>Dibaca
                                         </span>
@@ -279,19 +266,8 @@
                                     @endif
                                 </div>
 
-                                <!-- Action Buttons for specific notification types -->
-                                @if ($notification->type === 'point_exchange_request' && !$notification->isRead())
-                                    <div class="notification-actions">
-                                        <button type="button" class="btn-action btn-approve" data-action="approve"
-                                            data-id="{{ $notification->data['request_id'] ?? '' }}">
-                                            <i class="bi bi-check-lg me-1"></i>Setujui
-                                        </button>
-                                        <button type="button" class="btn-action btn-reject" data-action="reject"
-                                            data-id="{{ $notification->data['request_id'] ?? '' }}">
-                                            <i class="bi bi-x-lg me-1"></i>Tolak
-                                        </button>
-                                    </div>
-                                @elseif(!$notification->isRead())
+                                <!-- Action Buttons for unread notifications -->
+                                @if ($notification->isUnread())
                                     <div class="notification-actions">
                                         <button type="button" class="btn-action btn-mark-read" data-action="mark-read"
                                             data-id="{{ $notification->id }}">
@@ -338,15 +314,12 @@
                     const action = this.getAttribute('data-action');
                     const id = this.getAttribute('data-id');
                     const notificationItem = this.closest('.notification-item');
-                    const notificationId = notificationItem.getAttribute('data-notification-id');
 
                     // Disable button to prevent double clicks
                     disableButton(this);
 
                     if (action === 'mark-read') {
-                        markAsRead(notificationId, notificationItem, this);
-                    } else if (action === 'approve' || action === 'reject') {
-                        handleApprovalAction(action, id, notificationId, notificationItem, this);
+                        markAsRead(id, notificationItem, this);
                     }
                 });
             });
@@ -354,7 +327,7 @@
             function markAllAsRead() {
                 showLoading('Menandai semua notifikasi...');
 
-                fetch('/admin/notifications/mark-all-read', {
+                fetch('{{ route('notifications.markAllRead') }}', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
@@ -381,7 +354,7 @@
             }
 
             function markAsRead(notificationId, notificationItem, button) {
-                fetch(`/admin/notifications/${notificationId}/read`, {
+                fetch(`{{ url('notifications') }}/${notificationId}/read`, {
                         method: 'PUT',
                         headers: {
                             'Content-Type': 'application/json',
@@ -407,39 +380,6 @@
                     });
             }
 
-            function handleApprovalAction(action, requestId, notificationId, notificationItem, button) {
-                const endpoint = action === 'approve' ? '/admin/approve-request' : '/admin/reject-request';
-
-                fetch(endpoint, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-CSRF-TOKEN': getCSRFToken()
-                        },
-                        body: JSON.stringify({
-                            request_id: requestId,
-                            notification_id: notificationId
-                        })
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            // Update notification UI
-                            updateNotificationUI(notificationItem);
-                            updateUnreadCount();
-                            showToast(data.message || (action === 'approve' ? 'Permintaan disetujui' :
-                                'Permintaan ditolak'), 'success');
-                        } else {
-                            throw new Error(data.message || 'Terjadi kesalahan');
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error:', error);
-                        showToast(error.message || 'Terjadi kesalahan. Silakan coba lagi.', 'error');
-                        enableApprovalButtons(notificationItem);
-                    });
-            }
-
             function updateNotificationUI(notificationItem) {
                 // Remove unread class
                 notificationItem.classList.remove('unread');
@@ -459,7 +399,7 @@
             }
 
             function updateUnreadCount() {
-                fetch('/admin/notifications/unread-count')
+                fetch('{{ route('notifications.unreadCount') }}')
                     .then(response => response.json())
                     .then(data => {
                         if (data.success) {
@@ -498,19 +438,9 @@
             function enableButton(button, action) {
                 button.disabled = false;
                 const buttonTexts = {
-                    'mark-read': '<i class="bi bi-check me-1"></i>Tandai Dibaca',
-                    'approve': '<i class="bi bi-check-lg me-1"></i>Setujui',
-                    'reject': '<i class="bi bi-x-lg me-1"></i>Tolak'
+                    'mark-read': '<i class="bi bi-check me-1"></i>Tandai Dibaca'
                 };
                 button.innerHTML = buttonTexts[action] || 'Action';
-            }
-
-            function enableApprovalButtons(notificationItem) {
-                const approveBtn = notificationItem.querySelector('[data-action="approve"]');
-                const rejectBtn = notificationItem.querySelector('[data-action="reject"]');
-
-                if (approveBtn) enableButton(approveBtn, 'approve');
-                if (rejectBtn) enableButton(rejectBtn, 'reject');
             }
 
             function getCSRFToken() {
@@ -529,9 +459,9 @@
                     `toast-notification alert alert-${type === 'success' ? 'success' : 'danger'} alert-dismissible fade show position-fixed`;
                 toast.style.cssText = 'top: 100px; right: 20px; z-index: 9999; min-width: 300px;';
                 toast.innerHTML = `
-            ${message}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        `;
+                    ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                `;
 
                 document.body.appendChild(toast);
 
@@ -550,13 +480,13 @@
                     'position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center';
                 loading.style.cssText = 'background: rgba(0,0,0,0.5); z-index: 9999;';
                 loading.innerHTML = `
-            <div class="text-center text-white">
-                <div class="spinner-border mb-2" role="status">
-                    <span class="visually-hidden">Loading...</span>
-                </div>
-                <div>${message}</div>
-            </div>
-        `;
+                    <div class="text-center text-white">
+                        <div class="spinner-border mb-2" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <div>${message}</div>
+                    </div>
+                `;
                 document.body.appendChild(loading);
             }
 
@@ -569,27 +499,3 @@
         });
     </script>
 @endpush
-
-@php
-    // Helper functions that would typically be in a Helper class or Service
-    function getNotificationIconClass($type)
-    {
-        return match ($type) {
-            'point_exchange_request' => 'approval',
-            'warning' => 'warning',
-            'success' => 'success',
-            default => 'info',
-        };
-    }
-
-    function getNotificationIcon($type)
-    {
-        return match ($type) {
-            'point_exchange_request' => 'bi-currency-exchange',
-            'warning' => 'bi-exclamation-triangle',
-            'success' => 'bi-check-circle',
-            'info' => 'bi-info-circle',
-            default => 'bi-bell',
-        };
-    }
-@endphp

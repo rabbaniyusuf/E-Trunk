@@ -72,6 +72,11 @@ class Notification extends Model
         return is_null($this->read_at);
     }
 
+     public function isRead()
+    {
+        return !is_null($this->read_at);
+    }
+
     public function getIconClass()
     {
         return match($this->type) {

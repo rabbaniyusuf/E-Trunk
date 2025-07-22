@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Carbon\Carbon;
 use App\Models\Bin;
 use App\Models\User;
+use App\Models\Schedules;
 use App\Models\NabungSampah;
 use App\Models\Notification;
 use App\Models\WasteBinType;
@@ -47,28 +48,16 @@ class UserController extends Controller
             ->limit(5)
             ->get();
 
-        return view('user.dashboard.index', compact(
-            'availablePoints',
-            'monthlyGrowth',
-            'recentTransactions',
-            'recentRedemptions',
-            'wasteBinData'
-        ) + $wasteBinData);
+        return view('user.dashboard.index', compact('availablePoints', 'monthlyGrowth', 'recentTransactions', 'recentRedemptions', 'wasteBinData') + $wasteBinData);
     }
 
-     private function calculateAvailablePoints(User $user): int
+    private function calculateAvailablePoints(User $user): int
     {
         // Calculate total points from approved deposits
-        $totalDeposits = PointTransactions::where('user_id', $user->id)
-            ->where('transaction_type', 'deposit')
-            ->where('status', PointTransactions::STATUS_APPROVED)
-            ->sum('points');
+        $totalDeposits = PointTransactions::where('user_id', $user->id)->where('transaction_type', 'deposit')->where('status', PointTransactions::STATUS_APPROVED)->sum('points');
 
         // Calculate total points from approved withdrawals
-        $totalWithdrawals = PointTransactions::where('user_id', $user->id)
-            ->where('transaction_type', 'withdrawal')
-            ->where('status', PointTransactions::STATUS_APPROVED)
-            ->sum('points');
+        $totalWithdrawals = PointTransactions::where('user_id', $user->id)->where('transaction_type', 'withdrawal')->where('status', PointTransactions::STATUS_APPROVED)->sum('points');
 
         // Calculate total redeemed points
         $totalRedemptions = PointRedemptions::where('user_id', $user->id)
@@ -85,11 +74,7 @@ class UserController extends Controller
         $previousMonthEnd = Carbon::now()->subMonth()->endOfMonth();
 
         // Current month points
-        $currentMonthPoints = PointTransactions::where('user_id', $user->id)
-            ->where('transaction_type', 'deposit')
-            ->where('status', PointTransactions::STATUS_APPROVED)
-            ->where('created_at', '>=', $currentMonth)
-            ->sum('points');
+        $currentMonthPoints = PointTransactions::where('user_id', $user->id)->where('transaction_type', 'deposit')->where('status', PointTransactions::STATUS_APPROVED)->where('created_at', '>=', $currentMonth)->sum('points');
 
         // Previous month points
         $previousMonthPoints = PointTransactions::where('user_id', $user->id)
@@ -109,14 +94,14 @@ class UserController extends Controller
     {
         // Get latest sensor readings for each waste bin type
         $recycleData = SensorReadings::with('wasteBinType')
-            ->whereHas('wasteBinType', function($query) {
+            ->whereHas('wasteBinType', function ($query) {
                 $query->where('type', 'recycle');
             })
             ->latest('reading_time')
             ->first();
 
         $nonRecycleData = SensorReadings::with('wasteBinType')
-            ->whereHas('wasteBinType', function($query) {
+            ->whereHas('wasteBinType', function ($query) {
                 $query->where('type', 'non_recycle');
             })
             ->latest('reading_time')
@@ -164,7 +149,7 @@ class UserController extends Controller
 
         return response()->json([
             'transactions' => $transactions,
-            'redemptions' => $redemptions
+            'redemptions' => $redemptions,
         ]);
     }
 
@@ -238,7 +223,7 @@ class UserController extends Controller
                 return redirect()->back()->with('error', 'Tempat sampah daur ulang Anda masih kosong.');
             }
 
-            // Cek apakah user sudah memiliki permintaan yang masih pending
+            // Cek apakah user sudah memiliki permintaan yang masih active
             $existingRequest = WasteCollection::where('user_id', $user->id)
                 ->whereIn('status', [WasteCollection::STATUS_PENDING, WasteCollection::STATUS_SCHEDULED, WasteCollection::STATUS_IN_PROGRESS])
                 ->exists();
@@ -258,6 +243,8 @@ class UserController extends Controller
             }
 
             // Buat permintaan pengambilan sampah
+            $wasteTypes = collect($request->waste_types)->map(fn($type) => ucfirst($type))->join(', ');
+
             $collectionRequest = WasteCollection::create([
                 'user_id' => $user->id,
                 'waste_bin_type_id' => $wasteBinType->id,
@@ -265,26 +252,48 @@ class UserController extends Controller
                 'pickup_date' => $request->pickup_date,
                 'pickup_time' => $request->pickup_time,
                 'status' => WasteCollection::STATUS_PENDING,
-                'notes' => 'Permintaan pengambilan sampah: ' . collect($request->waste_types)->map(fn($type) => ucfirst($type))->join(', '),
+                'notes' => 'Permintaan pengambilan sampah: ' . $wasteTypes,
             ]);
 
             // Buat transaksi poin dengan status pending
+            $pointsToEarn = floor($wasteBinType->current_percentage);
+
             $pointTransaction = PointTransactions::create([
                 'user_id' => $user->id,
                 'waste_bin_type_id' => $wasteBinType->id,
                 'waste_collection_id' => $collectionRequest->id,
                 'transaction_type' => 'deposit',
-                'points' => floor($wasteBinType->current_percentage), // 1% = 1 poin
+                'points' => $pointsToEarn,
                 'percentage_deposited' => $wasteBinType->current_percentage,
-                'description' => 'Penukaran sampah daur ulang menjadi poin - ' . collect($request->waste_types)->map(fn($type) => ucfirst($type))->join(', '),
+                'description' => 'Penukaran sampah daur ulang menjadi poin - ' . $wasteTypes,
                 'status' => PointTransactions::STATUS_PENDING,
             ]);
 
-            // Kirim notifikasi ke semua petugas sampah
-            $this->notifyPetugasSampah($collectionRequest);
+            // Buat jadwal untuk petugas (otomatis assign ke petugas yang tersedia)
+            $availablePetugas = $this->getAvailablePetugas($request->pickup_date, $request->pickup_time);
 
-            // Kirim notifikasi konfirmasi ke user
-            $this->notifyUser($user, $collectionRequest);
+            $schedule = Schedules::create([
+                'petugas_id' => $availablePetugas?->id, // Bisa null jika belum ada petugas tersedia
+                'user_id' => $user->id,
+                'bin_id' => $user->wasteBin->id,
+                'schedule_type' => 'waste_collection',
+                'scheduled_date' => $request->pickup_date,
+                'scheduled_time' => $this->parseTimeSlot($request->pickup_time),
+                'priority' => 'medium',
+                'status' => $availablePetugas ? 'scheduled' : 'pending',
+                'notes' => 'Jadwal pengambilan sampah - ' . $wasteTypes,
+            ]);
+
+            // Update status collection request jika sudah ada petugas
+            if ($availablePetugas) {
+                $collectionRequest->update([
+                    'status' => WasteCollection::STATUS_SCHEDULED,
+                    'assigned_to' => $availablePetugas->id,
+                ]);
+            }
+
+            // Kirim notifikasi
+            $this->sendNotifications($collectionRequest, $schedule, $availablePetugas);
 
             DB::commit();
 
@@ -292,13 +301,15 @@ class UserController extends Controller
                 'user_id' => $user->id,
                 'collection_request_id' => $collectionRequest->id,
                 'point_transaction_id' => $pointTransaction->id,
+                'schedule_id' => $schedule->id,
+                'petugas_assigned' => $availablePetugas?->id,
                 'waste_types' => $request->waste_types,
                 'pickup_schedule' => $request->pickup_date . ' ' . $request->pickup_time,
             ]);
 
-            return redirect()
-                ->route('user.nabung')
-                ->with('success', 'Permintaan pengambilan sampah berhasil diajukan! Petugas akan menghubungi Anda untuk konfirmasi jadwal pengambilan pada ' . Carbon::parse($request->pickup_date)->format('d M Y') . ' pukul ' . $request->pickup_time . '.');
+            $successMessage = $availablePetugas ? 'Permintaan pengambilan sampah berhasil diajukan! Petugas ' . $availablePetugas->name . ' akan menghubungi Anda untuk konfirmasi jadwal pada ' . Carbon::parse($request->pickup_date)->format('d M Y') . ' pukul ' . $request->pickup_time . '.' : 'Permintaan pengambilan sampah berhasil diajukan! Admin akan menugaskan petugas dan menghubungi Anda untuk konfirmasi jadwal pada ' . Carbon::parse($request->pickup_date)->format('d M Y') . ' pukul ' . $request->pickup_time . '.';
+
+            return redirect()->route('user.nabung')->with('success', $successMessage);
         } catch (\Exception $e) {
             DB::rollBack();
 
@@ -313,55 +324,168 @@ class UserController extends Controller
     }
 
     /**
-     * Kirim notifikasi ke semua petugas sampah
+     * Mendapatkan petugas yang tersedia pada jadwal tertentu
      */
-    private function notifyPetugasSampah(WasteCollection $collectionRequest)
+    private function getAvailablePetugas($date, $timeSlot)
     {
-        $petugasSampah = User::role('petugas_kebersihan')->get();
+        // Ambil semua petugas sampah (role petugas_kebersihan)
+        $petugasList = User::all()->filter(function ($user) {
+            return $user->hasRole('petugas_kebersihan');
+        });
 
-        foreach ($petugasSampah as $petugas) {
-            Notification::create([
-                'user_id' => $petugas->id,
-                'type' => Notification::TYPE_COLLECTION_REQUEST,
-                'title' => 'Permintaan Pengambilan Sampah Baru',
-                'message' => "Permintaan pengambilan sampah dari {$collectionRequest->user->name} untuk tanggal {$collectionRequest->pickup_date->format('d M Y')} pukul {$collectionRequest->pickup_time}.",
-                'data' => [
-                    'collection_request_id' => $collectionRequest->id,
-                    'user_name' => $collectionRequest->user->name,
-                    'user_address' => $collectionRequest->user->address,
-                    'pickup_date' => $collectionRequest->pickup_date->format('Y-m-d'),
-                    'pickup_time' => $collectionRequest->pickup_time,
-                    'waste_types' => $collectionRequest->getWasteTypesLabel(),
-                    // 'action_url' => route('petugas.collection-requests.show', $collectionRequest->id),
-                ],
-                'notifiable_type' => WasteCollection::class,
-                'notifiable_id' => $collectionRequest->id,
-            ]);
+        if ($petugasList->isEmpty()) {
+            return null;
         }
+
+        // Cari petugas yang tidak memiliki jadwal pada waktu yang sama
+        foreach ($petugasList as $petugas) {
+            $hasConflict = Schedules::where('petugas_id', $petugas->id)
+                ->where('scheduled_date', $date)
+                ->where('scheduled_time', $this->parseTimeSlot($timeSlot))
+                ->whereIn('status', ['scheduled', 'in_progress'])
+                ->exists();
+
+            if (!$hasConflict) {
+                return $petugas;
+            }
+        }
+
+        // Jika semua petugas sibuk, return petugas dengan beban kerja paling sedikit
+        return $petugasList
+            ->sortBy(function ($petugas) use ($date) {
+                return Schedules::where('petugas_id', $petugas->id)
+                    ->where('scheduled_date', $date)
+                    ->whereIn('status', ['scheduled', 'in_progress'])
+                    ->count();
+            })
+            ->first();
     }
 
     /**
-     * Kirim notifikasi konfirmasi ke user
+     * Parse time slot menjadi time format
      */
-    private function notifyUser(User $user, WasteCollection $collectionRequest)
+    private function parseTimeSlot($timeSlot)
     {
+        // Ambil jam mulai dari time slot (contoh: "08:00-10:00" -> "08:00")
+        return explode('-', $timeSlot)[0];
+    }
+
+    /**
+     * Kirim notifikasi ke user dan petugas
+     */
+    private function sendNotifications($collectionRequest, $schedule, $petugas = null)
+    {
+        $user = $collectionRequest->user;
+        $pickupDate = Carbon::parse($collectionRequest->pickup_date)->format('d M Y');
+
+        // Notifikasi untuk user
         Notification::create([
             'user_id' => $user->id,
             'type' => Notification::TYPE_COLLECTION_REQUEST,
-            'title' => 'Permintaan Pengambilan Sampah Berhasil Diajukan',
-            'message' => "Permintaan pengambilan sampah Anda untuk tanggal {$collectionRequest->pickup_date->format('d M Y')} pukul {$collectionRequest->pickup_time} telah berhasil diajukan. Petugas akan segera memproses permintaan Anda.",
+            'title' => 'Permintaan Pengambilan Sampah Diterima',
+            'message' => $petugas ? "Permintaan Anda telah dijadwalkan pada {$pickupDate} pukul {$collectionRequest->pickup_time}. Petugas {$petugas->name} akan menghubungi Anda." : 'Permintaan Anda sedang diproses. Admin akan menugaskan petugas dan menghubungi Anda segera.',
             'data' => [
                 'collection_request_id' => $collectionRequest->id,
-                'pickup_date' => $collectionRequest->pickup_date->format('Y-m-d'),
+                'schedule_id' => $schedule->id,
+                'pickup_date' => $collectionRequest->pickup_date,
                 'pickup_time' => $collectionRequest->pickup_time,
-                'waste_types' => $collectionRequest->getWasteTypesLabel(),
-                'estimated_points' => floor($collectionRequest->wasteBinType->current_percentage),
-                // 'action_url' => route('user.nabung.show', $collectionRequest->id),
             ],
             'notifiable_type' => WasteCollection::class,
             'notifiable_id' => $collectionRequest->id,
         ]);
+
+        // Notifikasi untuk petugas jika sudah ditugaskan
+        if ($petugas) {
+            Notification::create([
+                'user_id' => $petugas->id,
+                'type' => Notification::TYPE_SCHEDULE_UPDATE,
+                'title' => 'Jadwal Pengambilan Sampah Baru',
+                'message' => "Anda ditugaskan untuk mengambil sampah dari {$user->name} pada {$pickupDate} pukul {$collectionRequest->pickup_time}.",
+                'data' => [
+                    'collection_request_id' => $collectionRequest->id,
+                    'schedule_id' => $schedule->id,
+                    'user_name' => $user->name,
+                    'user_address' => $user->address ?? 'Alamat tidak tersedia',
+                    'waste_types' => $collectionRequest->waste_types,
+                ],
+                'notifiable_type' => Schedules::class,
+                'notifiable_id' => $schedule->id,
+            ]);
+        }
+
+        // Notifikasi untuk semua admin jika belum ada petugas
+        if (!$petugas) {
+            $admins = User::where('role', 'admin')->get();
+            foreach ($admins as $admin) {
+                Notification::create([
+                    'user_id' => $admin->id,
+                    'type' => Notification::TYPE_COLLECTION_REQUEST,
+                    'title' => 'Permintaan Pengambilan Sampah Baru',
+                    'message' => "Permintaan baru dari {$user->name} untuk tanggal {$pickupDate}. Perlu penugasan petugas.",
+                    'data' => [
+                        'collection_request_id' => $collectionRequest->id,
+                        'schedule_id' => $schedule->id,
+                        'user_name' => $user->name,
+                        'pickup_date' => $collectionRequest->pickup_date,
+                        'pickup_time' => $collectionRequest->pickup_time,
+                    ],
+                    'notifiable_type' => WasteCollection::class,
+                    'notifiable_id' => $collectionRequest->id,
+                ]);
+            }
+        }
     }
+
+    /**
+     * Kirim notifikasi ke semua petugas sampah
+     */
+    // private function notifyPetugasSampah(WasteCollection $collectionRequest)
+    // {
+    //     $petugasSampah = User::role('petugas_kebersihan')->get();
+
+    //     foreach ($petugasSampah as $petugas) {
+    //         Notification::create([
+    //             'user_id' => $petugas->id,
+    //             'type' => Notification::TYPE_COLLECTION_REQUEST,
+    //             'title' => 'Permintaan Pengambilan Sampah Baru',
+    //             'message' => "Permintaan pengambilan sampah dari {$collectionRequest->user->name} untuk tanggal {$collectionRequest->pickup_date->format('d M Y')} pukul {$collectionRequest->pickup_time}.",
+    //             'data' => [
+    //                 'collection_request_id' => $collectionRequest->id,
+    //                 'user_name' => $collectionRequest->user->name,
+    //                 'user_address' => $collectionRequest->user->address,
+    //                 'pickup_date' => $collectionRequest->pickup_date->format('Y-m-d'),
+    //                 'pickup_time' => $collectionRequest->pickup_time,
+    //                 'waste_types' => $collectionRequest->getWasteTypesLabel(),
+    //                 // 'action_url' => route('petugas.collection-requests.show', $collectionRequest->id),
+    //             ],
+    //             'notifiable_type' => WasteCollection::class,
+    //             'notifiable_id' => $collectionRequest->id,
+    //         ]);
+    //     }
+    // }
+
+    // /**
+    //  * Kirim notifikasi konfirmasi ke user
+    //  */
+    // private function notifyUser(User $user, WasteCollection $collectionRequest)
+    // {
+    //     Notification::create([
+    //         'user_id' => $user->id,
+    //         'type' => Notification::TYPE_COLLECTION_REQUEST,
+    //         'title' => 'Permintaan Pengambilan Sampah Berhasil Diajukan',
+    //         'message' => "Permintaan pengambilan sampah Anda untuk tanggal {$collectionRequest->pickup_date->format('d M Y')} pukul {$collectionRequest->pickup_time} telah berhasil diajukan. Petugas akan segera memproses permintaan Anda.",
+    //         'data' => [
+    //             'collection_request_id' => $collectionRequest->id,
+    //             'pickup_date' => $collectionRequest->pickup_date->format('Y-m-d'),
+    //             'pickup_time' => $collectionRequest->pickup_time,
+    //             'waste_types' => $collectionRequest->getWasteTypesLabel(),
+    //             'estimated_points' => floor($collectionRequest->wasteBinType->current_percentage),
+    //             // 'action_url' => route('user.nabung.show', $collectionRequest->id),
+    //         ],
+    //         'notifiable_type' => WasteCollection::class,
+    //         'notifiable_id' => $collectionRequest->id,
+    //     ]);
+    // }
 
     public function tukarPoin()
     {

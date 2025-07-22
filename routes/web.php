@@ -57,6 +57,15 @@ Route::middleware('auth')->group(function () {
     // ROLE-BASED ROUTES
     // ===========================================
 
+    Route::prefix('notifications')
+        ->name('notifications.')
+        ->group(function () {
+            Route::get('/', [NotificationController::class, 'index'])->name('index');
+            Route::put('/{notification}/read', [NotificationController::class, 'markAsRead'])->name('read');
+            Route::post('/mark-all-read', [NotificationController::class, 'markAllAsRead'])->name('markAllRead');
+            Route::get('/unread-count', [NotificationController::class, 'getUnreadCount'])->name('unreadCount');
+        });
+
     // Routes untuk PETUGAS PUSAT (Admin)
     Route::middleware(['role:petugas_pusat'])
         ->prefix('admin')
@@ -71,15 +80,6 @@ Route::middleware('auth')->group(function () {
                     Route::get('/create', [AdminController::class, 'create'])->name(name: 'create');
                     Route::post('/create', [AdminController::class, 'store'])->name(name: 'store');
                     Route::get('/{user}/edit', [AdminController::class, 'edit'])->name('edit');
-                });
-
-            Route::prefix('notifications')
-                ->name('notifications.')
-                ->group(function () {
-                    Route::get('/', [NotificationController::class, 'index'])->name('index');
-                    Route::put('/{notification}/read', [NotificationController::class, 'markAsRead'])->name('read');
-                    Route::post('/mark-all-read', [NotificationController::class, 'markAllAsRead'])->name('markAllRead');
-                    Route::get('/unread-count', [NotificationController::class, 'getUnreadCount'])->name('unreadCount');
                 });
 
             Route::prefix('approvals')

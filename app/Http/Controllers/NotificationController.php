@@ -53,7 +53,7 @@ class NotificationController extends Controller
             return response()->json(
                 [
                     'success' => false,
-                    'message' => 'Terjadi kesalahan saat menandai notifikasi sebagai dibaca',
+                    'message' => $e->getMessage() ?: 'Terjadi kesalahan saat menandai notifikasi sebagai dibaca',
                 ],
                 500,
             );
