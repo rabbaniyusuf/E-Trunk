@@ -122,6 +122,7 @@ Route::middleware('auth')->group(function () {
             // Assigned Tasks
             Route::get('/tasks', [PetugasController::class, 'tasks'])->name('tasks.index');
             Route::get('/tasks/{task}', [PetugasController::class, 'showTask'])->name('tasks.show');
+            Route::put('/tasks/{task}/update', [PetugasController::class, 'updateTask'])->name('tasks.update');
             Route::put('/tasks/{task}/start', [PetugasController::class, 'startTask'])->name('tasks.start');
             Route::put('/tasks/{task}/complete', [PetugasController::class, 'completeTask'])->name('tasks.complete');
             Route::post('/tasks/{task}/progress', [PetugasController::class, 'updateProgress'])->name('tasks.progress');

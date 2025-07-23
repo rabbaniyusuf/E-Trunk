@@ -23,14 +23,10 @@
                 </div>
                 <div class="col-lg-4 col-md-5 col-12 text-md-end">
                     <div class="header-actions d-flex gap-2 justify-content-md-end justify-content-start mt-3 mt-md-0">
-                        <button class="btn btn-outline-light" onclick="refreshData()" data-bs-toggle="tooltip"
+                        <button class="btn btn-outline-light" onclick="window.location.reload()" data-bs-toggle="tooltip"
                             title="Refresh Data">
                             <i class="bi bi-arrow-clockwise"></i>
                             <span class="d-none d-sm-inline ms-1">Refresh</span>
-                        </button>
-                        <button class="btn btn-light" data-bs-toggle="modal" data-bs-target="#filterModal">
-                            <i class="bi bi-funnel"></i>
-                            <span class="d-none d-sm-inline ms-1">Filter</span>
                         </button>
                     </div>
                 </div>
@@ -45,7 +41,7 @@
                 </div>
                 <div class="stat-content">
                     <div class="stat-number">{{ $stats['today_total'] }}</div>
-                    <div class="stat-label">Jadwal Hari Ini</div>
+                    <div class="stat-label">Pengambilan Hari Ini</div>
                 </div>
                 <div class="stat-trend">
                     <i class="bi bi-graph-up text-success"></i>
@@ -94,7 +90,7 @@
                 </div>
                 <div class="stat-content">
                     <div class="stat-number">{{ $stats['high_priority'] }}</div>
-                    <div class="stat-label">Prioritas Tinggi</div>
+                    <div class="stat-label">Sedang Proses</div>
                 </div>
                 <div class="stat-pulse">
                     @if ($stats['high_priority'] > 0)
@@ -104,51 +100,30 @@
             </div>
         </div>
 
-        <!-- Modern Today's Schedule -->
+        <!-- Modern Today's Collections -->
         <div class="content-card mb-4">
             <div class="card-header-modern">
                 <div class="d-flex align-items-center justify-content-between flex-wrap">
                     <div class="card-title-group">
                         <h5 class="card-title-modern mb-1">
                             <i class="bi bi-calendar-day text-primary me-2"></i>
-                            Jadwal Hari Ini
+                            Pengambilan Sampah Hari Ini
                         </h5>
-                        <p class="card-subtitle-modern mb-0">Kelola jadwal pengambilan sampah hari ini</p>
-                    </div>
-                    <div class="card-actions">
-                        <div class="dropdown">
-                            <button class="btn btn-ghost dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                                <i class="bi bi-three-dots-vertical"></i>
-                            </button>
-                            <ul class="dropdown-menu dropdown-menu-end">
-                                <li><a class="dropdown-item" href="#" onclick="markAllCompleted()">
-                                        <i class="bi bi-check-all me-2"></i>Tandai Semua Selesai
-                                    </a></li>
-                                <li><a class="dropdown-item" href="#" onclick="exportSchedule()">
-                                        <i class="bi bi-download me-2"></i>Export Data
-                                    </a></li>
-                                <li>
-                                    <hr class="dropdown-divider">
-                                </li>
-                                <li><a class="dropdown-item" href="#" onclick="refreshData()">
-                                        <i class="bi bi-arrow-clockwise me-2"></i>Refresh
-                                    </a></li>
-                            </ul>
-                        </div>
+                        <p class="card-subtitle-modern mb-0">Kelola pengambilan sampah hari ini</p>
                     </div>
                 </div>
             </div>
 
             <div class="card-body-modern">
-                @if ($todaySchedules->count() > 0)
+                @if ($todayCollections->count() > 0)
                     <div class="schedule-list">
-                        @foreach ($todaySchedules as $index => $schedule)
-                            <div class="schedule-item {{ $schedule->status === 'completed' ? 'completed' : '' }}"
-                                data-schedule-id="{{ $schedule->id }}">
+                        @foreach ($todayCollections as $index => $collection)
+                            <div class="schedule-item {{ $collection->status === 'completed' ? 'completed' : '' }}"
+                                data-collection-id="{{ $collection->id }}">
                                 <div class="schedule-time">
                                     <div
-                                        class="time-badge {{ $schedule->priority === 'high' ? 'time-badge-danger' : ($schedule->priority === 'medium' ? 'time-badge-warning' : 'time-badge-primary') }}">
-                                        {{ $schedule->scheduled_time->format('H:i') }}
+                                        class="time-badge {{ $collection->status === 'in_progress' ? 'time-badge-warning' : ($collection->status === 'completed' ? 'time-badge-success' : 'time-badge-primary') }}">
+                                        {{ \Carbon\Carbon::parse($collection->pickup_time)->format('H:i') }}
                                     </div>
                                     <div class="schedule-index">#{{ str_pad($index + 1, 2, '0', STR_PAD_LEFT) }}</div>
                                 </div>
@@ -156,13 +131,13 @@
                                 <div class="schedule-content">
                                     <div class="customer-info">
                                         <div class="customer-avatar">
-                                            {{ strtoupper(substr($schedule->user->name, 0, 2)) }}
+                                            {{ strtoupper(substr($collection->user->name, 0, 2)) }}
                                         </div>
                                         <div class="customer-details">
-                                            <h6 class="customer-name">{{ $schedule->user->name }}</h6>
+                                            <h6 class="customer-name">{{ $collection->user->name }}</h6>
                                             <p class="customer-contact">
                                                 <i
-                                                    class="bi bi-telephone me-1"></i>{{ $schedule->user->phone ?? 'Tidak ada nomor' }}
+                                                    class="bi bi-telephone me-1"></i>{{ $collection->user->phone ?? 'Tidak ada nomor' }}
                                             </p>
                                         </div>
                                     </div>
@@ -172,48 +147,63 @@
                                             <div class="detail-item">
                                                 <i class="bi bi-geo-alt text-muted me-1"></i>
                                                 <span
-                                                    class="detail-text">{{ $schedule->user->address ?? 'Alamat tidak tersedia' }}</span>
+                                                    class="detail-text">{{ $collection->user->address ?? 'Alamat tidak tersedia' }}</span>
                                             </div>
                                         </div>
                                         <div class="detail-row">
                                             <div class="detail-item">
                                                 <i class="bi bi-building text-muted me-1"></i>
                                                 <span
-                                                    class="detail-text text-muted">{{ $schedule->user->district ?? 'Kecamatan tidak diketahui' }}</span>
+                                                    class="detail-text text-muted">{{ $collection->user->district ?? 'Kecamatan tidak diketahui' }}</span>
                                             </div>
                                         </div>
+                                        @if ($collection->wasteBinType)
+                                            <div class="detail-row">
+                                                <div class="detail-item">
+                                                    <i class="bi bi-trash text-muted me-1"></i>
+                                                    <span
+                                                        class="detail-text">{{ $collection->wasteBinType->name ?? 'Jenis sampah tidak diketahui' }}</span>
+                                                </div>
+                                            </div>
+                                        @endif
+                                        @if ($collection->waste_types && is_array($collection->waste_types))
+                                            <div class="detail-row">
+                                                <div class="detail-item">
+                                                    <i class="bi bi-list-ul text-muted me-1"></i>
+                                                    <span class="detail-text">
+                                                        @foreach ($collection->waste_types as $type)
+                                                            <span
+                                                                class="badge badge-outline-secondary me-1">{{ ucfirst($type) }}</span>
+                                                        @endforeach
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        @endif
                                     </div>
                                 </div>
 
                                 <div class="schedule-meta">
                                     <div class="schedule-badges mb-2">
-                                        @if ($schedule->schedule_type === 'waste_collection')
-                                            <span class="badge badge-success">
-                                                <i class="bi bi-trash me-1"></i>Pengambilan Sampah
-                                            </span>
-                                        @else
-                                            <span class="badge badge-info">
-                                                <i class="bi bi-coin me-1"></i>Penukaran Poin
-                                            </span>
-                                        @endif
-
-                                        @if ($schedule->priority === 'high')
-                                            <span class="badge badge-danger ms-1">Prioritas Tinggi</span>
-                                        @elseif($schedule->priority === 'medium')
-                                            <span class="badge badge-warning ms-1">Prioritas Sedang</span>
+                                        <span class="badge badge-success">
+                                            <i class="bi bi-trash me-1"></i>Pengambilan Sampah
+                                        </span>
+                                        @if ($collection->pickup_date < now()->toDateString())
+                                            <span class="badge badge-danger ms-1">Terlambat</span>
+                                        @elseif($collection->pickup_date == now()->toDateString() && $collection->pickup_time < now()->toTimeString())
+                                            <span class="badge badge-warning ms-1">Perlu Segera</span>
                                         @endif
                                     </div>
 
                                     <div class="schedule-status">
-                                        @if ($schedule->status === 'completed')
+                                        @if ($collection->status === 'completed')
                                             <span class="status-badge status-completed">
                                                 <i class="bi bi-check-circle me-1"></i>Selesai
                                             </span>
-                                        @elseif($schedule->status === 'in_progress')
+                                        @elseif($collection->status === 'in_progress')
                                             <span class="status-badge status-progress">
                                                 <i class="bi bi-clock me-1"></i>Sedang Proses
                                             </span>
-                                        @elseif($schedule->status === 'cancelled')
+                                        @elseif($collection->status === 'cancelled')
                                             <span class="status-badge status-cancelled">
                                                 <i class="bi bi-x-circle me-1"></i>Dibatalkan
                                             </span>
@@ -226,24 +216,18 @@
                                 </div>
 
                                 <div class="schedule-actions">
-                                    @if ($schedule->status !== 'completed')
-                                        @if ($schedule->status !== 'in_progress')
-                                            <button class="btn btn-action btn-primary"
-                                                onclick="updateStatus({{ $schedule->id }}, 'in_progress')"
-                                                title="Mulai">
-                                                <i class="bi bi-play-fill"></i>
-                                            </button>
-                                        @endif
-                                        <button class="btn btn-action btn-success"
-                                            onclick="updateStatus({{ $schedule->id }}, 'completed')" title="Selesai">
+                                    @if (in_array($collection->status, ['scheduled', 'in_progress']))
+                                        <a class="btn btn-action btn-success"
+                                            href="{{ route('petugas.tasks.show', $collection->id) }}"
+                                            title="Proses Pengambilan">
                                             <i class="bi bi-check2"></i>
-                                        </button>
+                                        </a>
                                     @endif
-                                    <button class="btn btn-action btn-info" onclick="viewDetails({{ $schedule->id }})"
-                                        title="Detail">
+                                    <a class="btn btn-action btn-info"
+                                        href="{{ route('petugas.tasks.show', $collection->id) }}" title="Detail">
                                         <i class="bi bi-eye"></i>
-                                    </button>
-                                    <a href="https://maps.google.com?q={{ urlencode($schedule->user->address ?? '') }}"
+                                    </a>
+                                    <a href="https://maps.google.com?q={{ urlencode($collection->user->address ?? '') }}"
                                         target="_blank" class="btn btn-action btn-warning" title="Maps">
                                         <i class="bi bi-geo-alt"></i>
                                     </a>
@@ -256,33 +240,30 @@
                         <div class="empty-icon">
                             <i class="bi bi-calendar-check"></i>
                         </div>
-                        <h5 class="empty-title">Tidak ada jadwal hari ini</h5>
+                        <h5 class="empty-title">Tidak ada pengambilan hari ini</h5>
                         <p class="empty-description">Anda tidak memiliki jadwal pengambilan sampah untuk hari ini. Nikmati
                             waktu istirahat Anda!</p>
-                        <a href="#" class="btn btn-primary mt-2">
-                            <i class="bi bi-calendar-plus me-2"></i>Lihat Jadwal Mendatang
-                        </a>
                     </div>
                 @endif
             </div>
         </div>
 
-        <!-- Modern Upcoming Schedule -->
+        <!-- Modern Upcoming Collections -->
         <div class="content-card">
             <div class="card-header-modern">
                 <div class="card-title-group">
                     <h5 class="card-title-modern mb-1">
                         <i class="bi bi-calendar-week text-primary me-2"></i>
-                        Jadwal Mendatang
+                        Pengambilan Mendatang
                     </h5>
-                    <p class="card-subtitle-modern mb-0">7 hari ke depan ({{ $stats['upcoming_total'] }} jadwal)</p>
+                    <p class="card-subtitle-modern mb-0">7 hari ke depan ({{ $stats['upcoming_total'] }} pengambilan)</p>
                 </div>
             </div>
 
             <div class="card-body-modern">
-                @if ($upcomingSchedules->count() > 0)
+                @if ($upcomingCollections->count() > 0)
                     <div class="upcoming-grid">
-                        @foreach ($upcomingSchedules->groupBy('scheduled_date') as $date => $schedules)
+                        @foreach ($upcomingCollections->groupBy('pickup_date') as $date => $collections)
                             <div class="upcoming-day-group">
                                 <div class="day-header">
                                     <div class="day-date">
@@ -291,35 +272,31 @@
                                     </div>
                                     <div class="day-info">
                                         <h6 class="day-name">{{ \Carbon\Carbon::parse($date)->isoFormat('dddd') }}</h6>
-                                        <p class="day-count">{{ $schedules->count() }} jadwal</p>
+                                        <p class="day-count">{{ $collections->count() }} pengambilan</p>
                                     </div>
                                 </div>
 
                                 <div class="day-schedules">
-                                    @foreach ($schedules->take(3) as $schedule)
+                                    @foreach ($collections->take(3) as $collection)
                                         <div class="upcoming-item">
-                                            <div class="upcoming-time">{{ $schedule->scheduled_time->format('H:i') }}
-                                            </div>
-                                            <div class="upcoming-customer">{{ Str::limit($schedule->user->name, 20) }}
+                                            <div class="upcoming-time">
+                                                {{ \Carbon\Carbon::parse($collection->pickup_time)->format('H:i') }}</div>
+                                            <div class="upcoming-customer">{{ Str::limit($collection->user->name, 20) }}
                                             </div>
                                             <div class="upcoming-type">
-                                                @if ($schedule->schedule_type === 'waste_collection')
-                                                    <span class="type-badge type-waste">Sampah</span>
-                                                @else
-                                                    <span class="type-badge type-points">Poin</span>
-                                                @endif
-                                                @if ($schedule->priority === 'high')
-                                                    <i class="bi bi-exclamation-triangle text-danger ms-1"
-                                                        title="Prioritas Tinggi"></i>
+                                                <span class="type-badge type-waste">Sampah</span>
+                                                @if ($collection->wasteBinType)
+                                                    <small
+                                                        class="text-muted ms-1">{{ $collection->wasteBinType->name }}</small>
                                                 @endif
                                             </div>
                                         </div>
                                     @endforeach
 
-                                    @if ($schedules->count() > 3)
+                                    @if ($collections->count() > 3)
                                         <div class="more-schedules">
-                                            <i class="bi bi-plus-circle me-1"></i>{{ $schedules->count() - 3 }} jadwal
-                                            lainnya
+                                            <i class="bi bi-plus-circle me-1"></i>{{ $collections->count() - 3 }}
+                                            pengambilan lainnya
                                         </div>
                                     @endif
                                 </div>
@@ -331,94 +308,18 @@
                         <div class="empty-icon">
                             <i class="bi bi-calendar-x"></i>
                         </div>
-                        <h5 class="empty-title">Tidak ada jadwal mendatang</h5>
+                        <h5 class="empty-title">Tidak ada pengambilan mendatang</h5>
                         <p class="empty-description">Belum ada jadwal untuk 7 hari ke depan.</p>
                     </div>
                 @endif
             </div>
         </div>
     </div>
-
-    <!-- Detail Modal -->
-    <div class="modal fade" id="detailModal" tabindex="-1">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">
-                        <i class="bi bi-info-circle text-primary me-2"></i>Detail Jadwal
-                    </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body" id="detailModalContent">
-                    <div class="text-center py-4">
-                        <div class="spinner-border text-primary" role="status">
-                            <span class="visually-hidden">Loading...</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Filter Modal -->
-    <div class="modal fade" id="filterModal" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">
-                        <i class="bi bi-funnel text-primary me-2"></i>Filter Jadwal
-                    </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <form id="filterForm">
-                        <div class="mb-3">
-                            <label class="form-label">Status</label>
-                            <select class="form-select" name="status">
-                                <option value="">Semua Status</option>
-                                <option value="scheduled">Terjadwal</option>
-                                <option value="in_progress">Sedang Proses</option>
-                                <option value="completed">Selesai</option>
-                                <option value="cancelled">Dibatalkan</option>
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Prioritas</label>
-                            <select class="form-select" name="priority">
-                                <option value="">Semua Prioritas</option>
-                                <option value="low">Rendah</option>
-                                <option value="medium">Sedang</option>
-                                <option value="high">Tinggi</option>
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Jenis</label>
-                            <select class="form-select" name="type">
-                                <option value="">Semua Jenis</option>
-                                <option value="waste_collection">Pengambilan Sampah</option>
-                                <option value="point_exchange">Penukaran Poin</option>
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Tanggal</label>
-                            <input type="date" class="form-control" name="date">
-                        </div>
-                    </form>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
-                    <button type="button" class="btn btn-outline-primary" onclick="resetFilter()">Reset</button>
-                    <button type="button" class="btn btn-primary" onclick="applyFilter()">Terapkan Filter</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
 @endsection
 
 @push('styles')
     <style>
-        /* Petugas Dashboard Styles */
+        /* Petugas Dashboard Styles - Complete */
 
         /* Dashboard Header */
         .dashboard-header {
@@ -475,18 +376,6 @@
         .header-actions .btn-outline-light:hover {
             background-color: rgba(255, 255, 255, 0.2);
             border-color: rgba(255, 255, 255, 0.3);
-        }
-
-        .header-actions .btn-light {
-            background-color: rgba(255, 255, 255, 0.15);
-            border-color: rgba(255, 255, 255, 0.2);
-            color: white;
-        }
-
-        .header-actions .btn-light:hover {
-            background-color: rgba(255, 255, 255, 0.25);
-            border-color: rgba(255, 255, 255, 0.3);
-            color: white;
         }
 
         /* Modern Stats Grid */
@@ -616,6 +505,11 @@
             }
         }
 
+        .stat-trend {
+            margin-left: auto;
+            font-size: 1.2rem;
+        }
+
         /* Modern Content Cards */
         .content-card {
             background: white;
@@ -648,21 +542,6 @@
             font-weight: 400;
         }
 
-        .card-actions .btn-ghost {
-            border: none;
-            background: none;
-            color: #6b7280;
-            padding: 0.5rem;
-            border-radius: 0.5rem;
-            transition: all 0.2s;
-            font-size: 1.1rem;
-        }
-
-        .card-actions .btn-ghost:hover {
-            background: #f1f5f9;
-            color: #374151;
-        }
-
         .card-body-modern {
             padding: 0;
         }
@@ -682,6 +561,11 @@
             margin-bottom: 1.25rem;
             transition: all 0.3s ease;
             position: relative;
+            gap: 1rem;
+        }
+
+        .schedule-item:last-child {
+            margin-bottom: 0;
         }
 
         .schedule-item:hover {
@@ -711,7 +595,6 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            margin-right: 1.5rem;
             min-width: 80px;
             flex-shrink: 0;
         }
@@ -725,6 +608,7 @@
             text-align: center;
             min-width: 70px;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+            margin-bottom: 0.5rem;
         }
 
         .time-badge-primary {
@@ -737,6 +621,525 @@
 
         .time-badge-danger {
             background: linear-gradient(135deg, #ef4444, #dc2626);
+        }
+
+        .time-badge-success {
+            background: linear-gradient(135deg, #10b981, #059669);
+        }
+
+        .schedule-index {
+            font-size: 0.75rem;
+            color: #6b7280;
+            font-weight: 500;
+        }
+
+        /* Customer Info */
+        .schedule-content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .customer-info {
+            display: flex;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .customer-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 0.875rem;
+            margin-right: 1rem;
+            flex-shrink: 0;
+        }
+
+        .customer-details {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .customer-name {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #1f2937;
+            margin: 0 0 0.25rem 0;
+        }
+
+        .customer-contact {
+            font-size: 0.875rem;
+            color: #6b7280;
+            margin: 0;
+        }
+
+        /* Schedule Details */
+        .schedule-details {
+            margin-bottom: 1rem;
+        }
+
+        .detail-row {
+            margin-bottom: 0.5rem;
+        }
+
+        .detail-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .detail-item {
+            display: flex;
+            align-items: flex-start;
+            font-size: 0.875rem;
+        }
+
+        .detail-item i {
+            width: 16px;
+            margin-top: 2px;
+            flex-shrink: 0;
+        }
+
+        .detail-text {
+            color: #4b5563;
+            line-height: 1.4;
+        }
+
+        /* Schedule Meta */
+        .schedule-meta {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
+
+        .schedule-badges {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .badge {
+            font-size: 0.75rem;
+            font-weight: 500;
+            padding: 0.375rem 0.75rem;
+            border-radius: 0.5rem;
+            display: inline-flex;
+            align-items: center;
+        }
+
+        .badge-success {
+            background-color: #d1fae5;
+            color: #065f46;
+            border: 1px solid #a7f3d0;
+        }
+
+        .badge-info {
+            background-color: #dbeafe;
+            color: #1e40af;
+            border: 1px solid #93c5fd;
+        }
+
+        .badge-warning {
+            background-color: #fef3c7;
+            color: #92400e;
+            border: 1px solid #fcd34d;
+        }
+
+        .badge-danger {
+            background-color: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fca5a5;
+        }
+
+        .badge-outline-secondary {
+            background-color: transparent;
+            color: #6b7280;
+            border: 1px solid #d1d5db;
+        }
+
+        /* Status Badges */
+        .schedule-status {
+            display: flex;
+            align-items: center;
+        }
+
+        .status-badge {
+            padding: 0.5rem 0.875rem;
+            border-radius: 0.5rem;
+            font-size: 0.8rem;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            border: 1px solid;
+        }
+
+        .status-completed {
+            background-color: #d1fae5;
+            color: #065f46;
+            border-color: #a7f3d0;
+        }
+
+        .status-progress {
+            background-color: #dbeafe;
+            color: #1e40af;
+            border-color: #93c5fd;
+        }
+
+        .status-cancelled {
+            background-color: #fee2e2;
+            color: #991b1b;
+            border-color: #fca5a5;
+        }
+
+        .status-scheduled {
+            background-color: #f3f4f6;
+            color: #374151;
+            border-color: #d1d5db;
+        }
+
+        /* Schedule Actions */
+        .schedule-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            margin-left: auto;
+            flex-shrink: 0;
+        }
+
+        .btn-action {
+            width: 40px;
+            height: 40px;
+            border-radius: 0.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            transition: all 0.2s ease;
+            border: none;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            text-decoration: none;
+        }
+
+        .btn-action:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        .btn-action.btn-primary {
+            background-color: #3b82f6;
+            color: white;
+        }
+
+        .btn-action.btn-primary:hover {
+            background-color: #2563eb;
+            color: white;
+        }
+
+        .btn-action.btn-success {
+            background-color: #10b981;
+            color: white;
+        }
+
+        .btn-action.btn-success:hover {
+            background-color: #059669;
+            color: white;
+        }
+
+        .btn-action.btn-info {
+            background-color: #06b6d4;
+            color: white;
+        }
+
+        .btn-action.btn-info:hover {
+            background-color: #0891b2;
+            color: white;
+        }
+
+        .btn-action.btn-warning {
+            background-color: #f59e0b;
+            color: white;
+        }
+
+        .btn-action.btn-warning:hover {
+            background-color: #d97706;
+            color: white;
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 3rem 2rem;
+            color: #6b7280;
+        }
+
+        .empty-icon {
+            font-size: 4rem;
+            color: #d1d5db;
+            margin-bottom: 1.5rem;
+        }
+
+        .empty-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 0.5rem;
+        }
+
+        .empty-description {
+            font-size: 1rem;
+            line-height: 1.5;
+            margin-bottom: 1.5rem;
+        }
+
+        /* Upcoming Schedule */
+        .upcoming-grid {
+            padding: 1.25rem;
+            display: grid;
+            gap: 1.5rem;
+        }
+
+        .upcoming-day-group {
+            background: #f8fafc;
+            border-radius: 1rem;
+            padding: 1.5rem;
+            border: 1px solid #e2e8f0;
+            transition: all 0.3s ease;
+        }
+
+        .upcoming-day-group:hover {
+            background: #f1f5f9;
+            border-color: #cbd5e1;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+        }
+
+        .day-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 1.25rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .day-date {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-right: 1.25rem;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border-radius: 0.75rem;
+            padding: 1rem;
+            min-width: 70px;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+        }
+
+        .day-number {
+            font-size: 1.5rem;
+            font-weight: 700;
+            line-height: 1;
+        }
+
+        .day-month {
+            font-size: 0.75rem;
+            font-weight: 500;
+            text-transform: uppercase;
+            margin-top: 0.25rem;
+            opacity: 0.9;
+        }
+
+        .day-info h6 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #1f2937;
+            margin: 0 0 0.25rem 0;
+        }
+
+        .day-count {
+            font-size: 0.875rem;
+            color: #6b7280;
+            margin: 0;
+        }
+
+        .day-schedules {
+            display: grid;
+            gap: 0.75rem;
+        }
+
+        .upcoming-item {
+            display: grid;
+            grid-template-columns: auto 1fr auto;
+            gap: 1rem;
+            align-items: center;
+            padding: 1rem;
+            background: white;
+            border-radius: 0.75rem;
+            border: 1px solid #e5e7eb;
+            transition: all 0.2s ease;
+        }
+
+        .upcoming-item:hover {
+            border-color: #cbd5e1;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        .upcoming-time {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: #374151;
+            background: #f3f4f6;
+            padding: 0.375rem 0.75rem;
+            border-radius: 0.375rem;
+            min-width: 50px;
+            text-align: center;
+        }
+
+        .upcoming-customer {
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: #1f2937;
+        }
+
+        .upcoming-type {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 0.25rem;
+        }
+
+        .type-badge {
+            font-size: 0.75rem;
+            font-weight: 500;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.375rem;
+        }
+
+        .type-waste {
+            background-color: #d1fae5;
+            color: #065f46;
+        }
+
+        .type-points {
+            background-color: #dbeafe;
+            color: #1e40af;
+        }
+
+        .more-schedules {
+            text-align: center;
+            padding: 0.75rem;
+            background: rgba(102, 126, 234, 0.05);
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+            color: #667eea;
+            font-weight: 500;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .dashboard-header {
+                padding: 1.5rem;
+            }
+
+            .dashboard-title {
+                font-size: 1.5rem;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+
+            .stat-card {
+                padding: 1.25rem;
+            }
+
+            .stat-icon {
+                width: 50px;
+                height: 50px;
+                font-size: 1.5rem;
+                margin-right: 1rem;
+            }
+
+            .stat-number {
+                font-size: 1.8rem;
+            }
+
+            .schedule-item {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 1rem;
+                padding: 1.25rem;
+            }
+
+            .schedule-time {
+                flex-direction: row;
+                justify-content: space-between;
+                align-items: center;
+                min-width: auto;
+            }
+
+            .schedule-actions {
+                flex-direction: row;
+                justify-content: center;
+                margin-left: 0;
+            }
+
+            .upcoming-grid {
+                padding: 1rem;
+                gap: 1rem;
+            }
+
+            .upcoming-day-group {
+                padding: 1.25rem;
+            }
+
+            .upcoming-item {
+                grid-template-columns: 1fr;
+                gap: 0.5rem;
+                text-align: center;
+            }
+
+            .day-date {
+                min-width: 60px;
+                padding: 0.75rem;
+            }
+
+            .upcoming-type {
+                align-items: center;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .header-actions {
+                margin-top: 1rem;
+            }
+
+            .header-actions .btn {
+                padding: 0.5rem 0.75rem;
+                font-size: 0.875rem;
+            }
+
+            .customer-info {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.75rem;
+            }
+
+            .customer-avatar {
+                margin-right: 0;
+            }
+
+            .schedule-badges {
+                justify-content: center;
+            }
+
+            .schedule-status {
+                justify-content: center;
+            }
         }
     </style>
 @endpush

@@ -34,7 +34,7 @@ class PointRedemptions extends Model
 
     public function schedule()
     {
-        return $this->hasOne(Schedule::class);
+        return $this->hasOne(Schedules::class);
     }
 
     // Scopes

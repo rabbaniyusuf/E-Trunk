@@ -488,7 +488,7 @@
         </div>
     </div>
 
-    <!-- Statistics Cards -->
+    <!-- Statistics Cards - Updated Section Only -->
     <div class="row g-4 mb-4">
         <!-- Balance Card -->
         <div class="col-md-6 col-lg-3">
@@ -518,7 +518,7 @@
                     <div class="progress-text text-success">{{ number_format($recyclePercentage, 1) }}%</div>
                 </div>
                 <h6 class="text-muted mb-2">Sampah Recycle</h6>
-                <div class="text-success fw-semibold">{{ number_format($recyclePercentage * 0.5, 2) }} L</div>
+                <div class="text-success fw-semibold">{{ number_format($recycleVolume, 1) }} L</div>
                 <div
                     class="bin-status {{ $recyclePercentage >= 80 ? 'full' : ($recyclePercentage >= 60 ? 'high' : ($recyclePercentage >= 30 ? 'medium' : 'low')) }}">
                     <div class="bin-status-dot"></div>
@@ -540,7 +540,7 @@
                     <div class="progress-text text-warning">{{ number_format($nonRecyclePercentage, 1) }}%</div>
                 </div>
                 <h6 class="text-muted mb-2">Sampah Non-Recycle</h6>
-                <div class="text-warning fw-semibold">{{ number_format($nonRecyclePercentage * 0.5, 2) }} L</div>
+                <div class="text-warning fw-semibold">{{ number_format($nonRecycleVolume, 1) }} L</div>
                 <div
                     class="bin-status {{ $nonRecyclePercentage >= 80 ? 'full' : ($nonRecyclePercentage >= 60 ? 'high' : ($nonRecyclePercentage >= 30 ? 'medium' : 'low')) }}">
                     <div class="bin-status-dot"></div>
@@ -556,7 +556,7 @@
                     <i class="bi bi-archive"></i>
                 </div>
                 <h6 class="text-muted mb-2">Total Volume</h6>
-                <h3 class="text-purple mb-1">{{ number_format($totalWasteVolume, 2) }} L</h3>
+                <h3 class="text-purple mb-1">{{ number_format($totalWasteVolume, 1) }} L</h3>
                 <div class="metric-change neutral">
                     <i class="bi bi-info-circle"></i>
                     Total kedua tempat sampah
@@ -680,11 +680,6 @@
                         <i class="bi bi-clock-history"></i>
                         <h6>Belum ada aktivitas</h6>
                         <p class="text-muted mb-0">Mulai nabung sampah untuk melihat aktivitas Anda.</p>
-                        <div class="mt-3">
-                            <a href="{{ route('user.nabung') }}" class="btn btn-primary btn-sm">
-                                <i class="bi bi-plus-circle"></i> Mulai Nabung
-                            </a>
-                        </div>
                     </div>
                 @endif
             </div>

@@ -6,7 +6,6 @@ use Carbon\Carbon;
 use App\Models\Bin;
 use App\Models\User;
 use App\Models\Schedules;
-use App\Models\NabungSampah;
 use App\Models\Notification;
 use App\Models\WasteBinType;
 use Illuminate\Http\Request;
@@ -31,8 +30,8 @@ class UserController extends Controller
         // Get monthly growth percentage
         $monthlyGrowth = $this->calculateMonthlyGrowth($user);
 
-        // Get sensor readings for waste bin percentages
-        $wasteBinData = $this->getWasteBinData();
+        // Get waste bin data from waste_bin_type table (dummy data)
+        $wasteBinData = $this->getWasteBinDataFromType();
 
         // Get recent transactions (last 10)
         $recentTransactions = PointTransactions::with(['wasteBinType', 'user'])
@@ -48,7 +47,7 @@ class UserController extends Controller
             ->limit(5)
             ->get();
 
-        return view('user.dashboard.index', compact('availablePoints', 'monthlyGrowth', 'recentTransactions', 'recentRedemptions', 'wasteBinData') + $wasteBinData);
+        return view('user.dashboard.index', array_merge(compact('availablePoints', 'monthlyGrowth', 'recentTransactions', 'recentRedemptions'), $wasteBinData));
     }
 
     private function calculateAvailablePoints(User $user): int
@@ -64,7 +63,7 @@ class UserController extends Controller
             ->whereIn('status', ['completed', 'approved'])
             ->sum('points_redeemed');
 
-        return $totalDeposits - $totalWithdrawals - $totalRedemptions;
+        return max(0, $totalDeposits - $totalWithdrawals - $totalRedemptions);
     }
 
     private function calculateMonthlyGrowth(User $user): float
@@ -87,7 +86,48 @@ class UserController extends Controller
             return $currentMonthPoints > 0 ? 100 : 0;
         }
 
-        return (($currentMonthPoints - $previousMonthPoints) / $previousMonthPoints) * 100;
+        return round((($currentMonthPoints - $previousMonthPoints) / $previousMonthPoints) * 100, 1);
+    }
+
+    private function getWasteBinDataFromType(): array
+    {
+        $user_bin_id = Auth::user()->waste_bin_code ? Bin::where('bin_code', Auth::user()->waste_bin_code)->value('id') : null;
+        // Get waste bin types with dummy percentage data
+        $recycleBin = WasteBinType::where('type', 'recycle')->where('bin_id', $user_bin_id)->first();
+        $nonRecycleBin = WasteBinType::where('type', 'non_recycle')->where('bin_id', $user_bin_id)->first();
+
+        // Set dummy percentage values (you can customize these or add percentage field to waste_bin_type table)
+        $recyclePercentage = (int) $recycleBin->current_percentage ?? 0;
+        $nonRecyclePercentage = (int) $nonRecycleBin->current_percentage ?? 0;
+
+        // Calculate total waste volume (assuming each bin has 50L capacity)
+        $binCapacity = 50; // Liters per bin
+        $recycleVolume = ($recyclePercentage / 100) * $binCapacity;
+        $nonRecycleVolume = ($nonRecyclePercentage / 100) * $binCapacity;
+        $totalWasteVolume = $recycleVolume + $nonRecycleVolume;
+
+        return [
+            'recyclePercentage' => $recyclePercentage,
+            'nonRecyclePercentage' => $nonRecyclePercentage,
+            'totalWasteVolume' => $totalWasteVolume,
+            'recycleVolume' => $recycleVolume,
+            'nonRecycleVolume' => $nonRecycleVolume,
+        ];
+    }
+
+    private function getDummyPercentage(string $type): float
+    {
+        // Generate realistic dummy data based on current time and type
+        // This will give consistent but varying percentages throughout the day
+        $seed = (int) (time() / 3600) + ($type === 'recycle' ? 1 : 2); // Changes every hour
+        mt_srand($seed);
+
+        // Recycle bins tend to fill slower than non-recycle
+        if ($type === 'recycle') {
+            return min(85, mt_rand(15, 70) + (mt_rand(0, 100) > 80 ? mt_rand(10, 15) : 0));
+        } else {
+            return min(90, mt_rand(25, 80) + (mt_rand(0, 100) > 70 ? mt_rand(5, 10) : 0));
+        }
     }
 
     private function getWasteBinData(): array
@@ -255,20 +295,6 @@ class UserController extends Controller
                 'notes' => 'Permintaan pengambilan sampah: ' . $wasteTypes,
             ]);
 
-            // Buat transaksi poin dengan status pending
-            $pointsToEarn = floor($wasteBinType->current_percentage);
-
-            $pointTransaction = PointTransactions::create([
-                'user_id' => $user->id,
-                'waste_bin_type_id' => $wasteBinType->id,
-                'waste_collection_id' => $collectionRequest->id,
-                'transaction_type' => 'deposit',
-                'points' => $pointsToEarn,
-                'percentage_deposited' => $wasteBinType->current_percentage,
-                'description' => 'Penukaran sampah daur ulang menjadi poin - ' . $wasteTypes,
-                'status' => PointTransactions::STATUS_PENDING,
-            ]);
-
             // Buat jadwal untuk petugas (otomatis assign ke petugas yang tersedia)
             $availablePetugas = $this->getAvailablePetugas($request->pickup_date, $request->pickup_time);
 
@@ -300,7 +326,6 @@ class UserController extends Controller
             Log::info('Waste collection request created successfully', [
                 'user_id' => $user->id,
                 'collection_request_id' => $collectionRequest->id,
-                'point_transaction_id' => $pointTransaction->id,
                 'schedule_id' => $schedule->id,
                 'petugas_assigned' => $availablePetugas?->id,
                 'waste_types' => $request->waste_types,
@@ -319,7 +344,10 @@ class UserController extends Controller
                 'trace' => $e->getTraceAsString(),
             ]);
 
-            return redirect()->back()->withInput()->with('error', $e->getMessage() ?: 'Terjadi kesalahan saat mengajukan permintaan pengambilan sampah. Silakan coba lagi.');
+            return redirect()
+                ->back()
+                ->withInput()
+                ->with('error', $e->getMessage() ?: 'Terjadi kesalahan saat mengajukan permintaan pengambilan sampah. Silakan coba lagi.');
         }
     }
 

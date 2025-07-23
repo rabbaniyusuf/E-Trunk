@@ -9,7 +9,12 @@ class Schedules extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['petugas_id', 'user_id', 'bin_id', 'point_redemption_id', 'schedule_type', 'scheduled_date', 'scheduled_time', 'priority', 'status', 'notes', 'completed_at'];
+    const STATUS_IN_PROGRESS = 'in_progress';
+    const STATUS_COMPLETED = 'completed';
+    const STATUS_CANCELLED = 'cancelled';
+    const STATUS_SCHEDULED = 'scheduled';
+
+    protected $fillable = ['petugas_id', 'user_id', 'bin_id', 'schedule_type', 'scheduled_date', 'scheduled_time', 'priority', 'status', 'notes'];
 
     protected function casts(): array
     {

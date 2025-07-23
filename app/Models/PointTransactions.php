@@ -15,7 +15,6 @@ class PointTransactions extends Model
 
     protected $fillable = [
         'user_id',
-        'waste_bin_type_id',
         'waste_collection_id',
         'transaction_type',
         'points',
@@ -53,7 +52,7 @@ class PointTransactions extends Model
 
     public function collectionRequest()
     {
-        return $this->belongsTo(WasteCollectionRequest::class, 'collection_request_id');
+        return $this->belongsTo(WasteCollection::class, 'collection_request_id');
     }
 
     // Scopes

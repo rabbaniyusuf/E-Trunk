@@ -15,7 +15,6 @@ return new class extends Migration
             $table->id();
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->foreignId('waste_collection_id')->nullable()->constrained()->onDelete('set null');
-            $table->foreignId('waste_bin_type_id')->nullable()->constrained()->onDelete('set null');
             $table->enum('transaction_type', ['deposit', 'withdrawal']);
             $table->integer('points');
             $table->decimal('percentage_deposited', 5, 2)->nullable();
