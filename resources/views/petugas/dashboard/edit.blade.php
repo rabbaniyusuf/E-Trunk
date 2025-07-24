@@ -192,14 +192,15 @@
                                     <small>
                                         • Kertas: 15 poin/kg<br>
                                         • Plastik: 10 poin/kg<br>
-                                        • Kardus: 12 poin/kg
+                                        • Kardus: 12 poin/kg<br>
+                                        <span class="text-warning">* Poin akan menunggu approval admin</span>
                                     </small>
                                 </div>
                             </div>
 
                             <div class="row g-4">
                                 <!-- Input Kertas -->
-                                <div class="col-md-6">
+                                <div class="col-md-4">
                                     <div class="border rounded-3 p-3 bg-light">
                                         <div class="d-flex align-items-center mb-3">
                                             <div class="bg-success rounded-circle p-2 me-3">
@@ -237,7 +238,7 @@
                                 </div>
 
                                 <!-- Input Plastik -->
-                                <div class="col-md-6">
+                                <div class="col-md-4">
                                     <div class="border rounded-3 p-3 bg-light">
                                         <div class="d-flex align-items-center mb-3">
                                             <div class="bg-info rounded-circle p-2 me-3">
@@ -274,17 +275,54 @@
                                     </div>
                                 </div>
 
+                                <!-- Input Kardus -->
+                                <div class="col-md-4">
+                                    <div class="border rounded-3 p-3 bg-light">
+                                        <div class="d-flex align-items-center mb-3">
+                                            <div class="bg-warning rounded-circle p-2 me-3">
+                                                <i class="bi bi-box text-white"></i>
+                                            </div>
+                                            <div>
+                                                <h6 class="mb-0">Sampah Kardus</h6>
+                                                <small class="text-muted">12 poin per kg</small>
+                                            </div>
+                                        </div>
 
+                                        <div class="mb-3">
+                                            <label for="berat_kardus" class="form-label">Berat (kg)</label>
+                                            <div class="input-group">
+                                                <input type="number"
+                                                    class="form-control form-control-lg text-center @error('berat_kardus') is-invalid @enderror"
+                                                    id="berat_kardus" name="berat_kardus" min="0" step="0.1"
+                                                    placeholder="0.0" value="{{ old('berat_kardus') }}"
+                                                    oninput="hitungPoin()">
+                                                <span class="input-group-text">kg</span>
+                                                @error('berat_kardus')
+                                                    <div class="invalid-feedback">{{ $message }}</div>
+                                                @enderror
+                                            </div>
+                                        </div>
+
+                                        <div class="text-center">
+                                            <div class="bg-white rounded p-2 border">
+                                                <small class="text-muted d-block">Poin yang didapat</small>
+                                                <span class="h5 text-warning mb-0" id="poin_kardus">0</span>
+                                                <small class="text-muted ms-1">poin</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
 
                                 <!-- Total Poin -->
                                 <div class="col-12">
                                     <div class="card border-primary">
                                         <div class="card-body text-center py-4">
-                                            <h6 class="text-muted mb-2">Total Poin yang Diberikan</h6>
+                                            <h6 class="text-muted mb-2">Total Poin yang Akan Diberikan</h6>
                                             <div class="h2 text-primary mb-0">
                                                 <span id="total_poin">0</span>
                                                 <small class="h6 text-muted ms-1">poin</small>
                                             </div>
+                                            <small class="text-warning">Menunggu Approval Admin</small>
                                         </div>
                                     </div>
                                 </div>
@@ -332,15 +370,18 @@
                 // Ambil nilai input
                 const beratKertas = parseFloat(document.getElementById('berat_kertas').value) || 0;
                 const beratPlastik = parseFloat(document.getElementById('berat_plastik').value) || 0;
+                const beratKardus = parseFloat(document.getElementById('berat_kardus').value) || 0;
 
                 // Hitung poin sesuai dengan controller
                 const poinKertas = beratKertas * 15;
                 const poinPlastik = beratPlastik * 10;
-                const totalPoin = poinKertas + poinPlastik;
+                const poinKardus = beratKardus * 12;
+                const totalPoin = poinKertas + poinPlastik + poinKardus;
 
                 // Update tampilan
                 document.getElementById('poin_kertas').textContent = poinKertas.toFixed(0);
                 document.getElementById('poin_plastik').textContent = poinPlastik.toFixed(0);
+                document.getElementById('poin_kardus').textContent = poinKardus.toFixed(0);
                 document.getElementById('total_poin').textContent = totalPoin.toFixed(0);
 
                 // Enable/disable submit button
@@ -358,17 +399,18 @@
             document.getElementById('sampahForm').addEventListener('submit', function(e) {
                 const beratKertas = parseFloat(document.getElementById('berat_kertas').value) || 0;
                 const beratPlastik = parseFloat(document.getElementById('berat_plastik').value) || 0;
+                const beratKardus = parseFloat(document.getElementById('berat_kardus').value) || 0;
 
-                if (beratKertas === 0 && beratPlastik === 0) {
+                if (beratKertas === 0 && beratPlastik === 0 && beratKardus === 0) {
                     e.preventDefault();
                     alert('Harap masukkan minimal satu jenis sampah yang diambil!');
                     return false;
                 }
 
                 // Konfirmasi sebelum submit
-                const totalPoin = (beratKertas * 15) + (beratPlastik * 10);
+                const totalPoin = (beratKertas * 15) + (beratPlastik * 10) + (beratKardus * 12);
                 const konfirmasi = confirm(
-                    `Apakah Anda yakin ingin menyelesaikan pengambilan ini?\n\nTotal poin yang akan diberikan: ${totalPoin} poin\n\nPoin akan langsung disetujui dan ditambahkan ke akun pengguna.`
+                    `Apakah Anda yakin ingin menyelesaikan pengambilan ini?\n\nTotal poin yang akan diberikan: ${totalPoin} poin\n\nPoin akan menunggu approval admin sebelum ditambahkan ke akun pengguna.`
                 );
 
                 if (!konfirmasi) {

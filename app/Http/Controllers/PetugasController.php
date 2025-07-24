@@ -110,7 +110,7 @@ class PetugasController extends Controller
             $poinKardus = $beratKardus * 12; // 12 poin per kg
             $totalPoin = $poinKertas + $poinPlastik + $poinKardus;
 
-            // Buat point transactions untuk setiap jenis sampah yang diambil
+            // Buat point transactions untuk setiap jenis sampah yang diambil dengan status PENDING
             if ($beratKertas > 0) {
                 PointTransactions::create([
                     'user_id' => $wasteCollection->user_id,
@@ -119,7 +119,7 @@ class PetugasController extends Controller
                     'points' => $poinKertas,
                     'percentage_deposited' => $beratKertas, // Simpan berat sebagai percentage_deposited
                     'description' => "Pengambilan sampah kertas: {$beratKertas} kg ({$poinKertas} poin)",
-                    'status' => PointTransactions::STATUS_APPROVED,
+                    'status' => PointTransactions::STATUS_PENDING, // STATUS PENDING untuk approval
                     'processed_by' => Auth::id(),
                     'processed_at' => now(),
                 ]);
@@ -133,7 +133,7 @@ class PetugasController extends Controller
                     'points' => $poinPlastik,
                     'percentage_deposited' => $beratPlastik,
                     'description' => "Pengambilan sampah plastik: {$beratPlastik} kg ({$poinPlastik} poin)",
-                    'status' => PointTransactions::STATUS_APPROVED,
+                    'status' => PointTransactions::STATUS_PENDING, // STATUS PENDING untuk approval
                     'processed_by' => Auth::id(),
                     'processed_at' => now(),
                 ]);
@@ -147,32 +147,32 @@ class PetugasController extends Controller
                     'points' => $poinKardus,
                     'percentage_deposited' => $beratKardus,
                     'description' => "Pengambilan sampah kardus: {$beratKardus} kg ({$poinKardus} poin)",
-                    'status' => PointTransactions::STATUS_APPROVED,
+                    'status' => PointTransactions::STATUS_PENDING, // STATUS PENDING untuk approval
                     'processed_by' => Auth::id(),
                     'processed_at' => now(),
                 ]);
             }
 
-            // Update status waste collection menjadi completed
+            // Update status waste collection menjadi COMPLETED
             $wasteCollection->update([
-                'status' => WasteCollection::STATUS_COMPLETED,
+                'status' => WasteCollection::STATUS_COMPLETED, // Ubah ke COMPLETED
                 'notes' => $request->catatan,
                 'processed_by' => Auth::id(),
                 'processed_at' => now(),
                 'completed_at' => now(),
             ]);
 
-            // Kirim notifikasi ke admin untuk approval (jika diperlukan)
-            $this->sendAdminNotification($wasteCollection, $totalPoin, $beratKertas, $beratPlastik);
+            // Kirim notifikasi ke admin untuk approval
+            $this->sendAdminNotification($wasteCollection, $totalPoin, $beratKertas, $beratPlastik, $beratKardus);
 
-            // Kirim notifikasi ke user bahwa sampah sudah diambil
+            // Kirim notifikasi ke user bahwa sampaah sudah diambil
             $this->sendUserNotification($wasteCollection, $totalPoin);
 
             DB::commit();
 
             return redirect()
                 ->route('petugas.dashboard')
-                ->with('success', "Pengambilan sampah berhasil diselesaikan! Total {$totalPoin} poin telah diberikan.");
+                ->with('success', "Pengambilan sampah berhasil diselesaikan! Total {$totalPoin} poin menunggu approval admin.");
         } catch (\Exception $e) {
             DB::rollback();
 
@@ -180,20 +180,25 @@ class PetugasController extends Controller
         }
     }
 
-    private function sendAdminNotification($schedule, $totalPoin, $beratKertas, $beratPlastik)
+    private function sendAdminNotification($wasteCollection, $totalPoin, $beratKertas, $beratPlastik, $beratKardus = 0)
     {
         // Ambil semua admin/petugas_pusat
         $admins = \App\Models\User::role('petugas_pusat')->get();
 
         $details = [];
         if ($beratKertas > 0) {
-            $details[] = "Kertas: {$beratKertas} kg (" . $beratKertas * 15 . ' poin)';
+            $details[] = "Kertas: {$beratKertas} kg (" . ($beratKertas * 15) . ' poin)';
         }
         if ($beratPlastik > 0) {
-            $details[] = "Plastik: {$beratPlastik} kg (" . $beratPlastik * 10 . ' poin)';
+            $details[] = "Plastik: {$beratPlastik} kg (" . ($beratPlastik * 10) . ' poin)';
+        }
+        if ($beratKardus > 0) {
+            $details[] = "Kardus: {$beratKardus} kg (" . ($beratKardus * 12) . ' poin)';
         }
 
-        $message = 'Pengambilan sampah telah diselesaikan oleh ' . Auth::user()->name . ' untuk user ' . $schedule->user->name . '. ' . 'Detail: ' . implode(', ', $details) . '. ' . "Total poin: {$totalPoin} poin. Memerlukan approval.";
+        $message = 'Pengambilan sampah telah diselesaikan oleh ' . Auth::user()->name . ' untuk user ' . $wasteCollection->user->name . '. ' .
+                   'Detail: ' . implode(', ', $details) . '. ' .
+                   "Total poin: {$totalPoin} poin. Memerlukan approval.";
 
         foreach ($admins as $admin) {
             Notification::create([
@@ -202,33 +207,36 @@ class PetugasController extends Controller
                 'title' => 'Approval Poin Diperlukan',
                 'message' => $message,
                 'data' => [
-                    'schedule_id' => $schedule->id,
-                    'user_id' => $schedule->user_id,
+                    'waste_collection_id' => $wasteCollection->id,
+                    'user_id' => $wasteCollection->user_id,
                     'total_points' => $totalPoin,
                     'berat_kertas' => $beratKertas,
                     'berat_plastik' => $beratPlastik,
+                    'berat_kardus' => $beratKardus,
                     'processed_by' => Auth::id(),
+                    'action_needed' => 'approve_points'
                 ],
-                'notifiable_type' => 'App\Models\Schedules',
-                'notifiable_id' => $schedule->id,
+                'notifiable_type' => 'App\Models\WasteCollection',
+                'notifiable_id' => $wasteCollection->id,
             ]);
         }
     }
 
-    private function sendUserNotification($schedule, $totalPoin)
+    private function sendUserNotification($wasteCollection, $totalPoin)
     {
         Notification::create([
-            'user_id' => $schedule->user_id,
+            'user_id' => $wasteCollection->user_id,
             'type' => Notification::TYPE_COLLECTION_REQUEST,
             'title' => 'Sampah Berhasil Diambil',
-            'message' => 'Sampah Anda telah berhasil diambil oleh petugas. ' . "Total {$totalPoin} poin sedang menunggu approval admin.",
+            'message' => 'Sampah Anda telah berhasil diambil oleh petugas. ' .
+                        "Total {$totalPoin} poin sedang menunggu approval admin.",
             'data' => [
-                'schedule_id' => $schedule->id,
+                'waste_collection_id' => $wasteCollection->id,
                 'total_points' => $totalPoin,
-                'status' => 'completed',
+                'status' => 'completed_pending_approval',
             ],
-            'notifiable_type' => 'App\Models\Schedules',
-            'notifiable_id' => $schedule->id,
+            'notifiable_type' => 'App\Models\WasteCollection',
+            'notifiable_id' => $wasteCollection->id,
         ]);
     }
 }

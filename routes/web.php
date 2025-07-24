@@ -89,6 +89,9 @@ Route::middleware('auth')->group(function () {
                     Route::get('/{approval}/edit', [ApprovalController::class, 'edit'])->name('edit');
                     Route::put('/{approval}', [ApprovalController::class, 'update'])->name('update');
                     Route::post('/approval/bulk-update', [ApprovalController::class, 'bulkUpdate'])->name('bulk-update');
+
+                    Route::get('/collections', [ApprovalController::class, 'showCompletedCollections'])->name('collections');
+                    Route::post('/collections/{collection}/create-point', [ApprovalController::class, 'createPointTransaction'])->name('collections.create-point');
                 });
 
             // User Management

@@ -30,24 +30,170 @@ class UserController extends Controller
         // Get monthly growth percentage
         $monthlyGrowth = $this->calculateMonthlyGrowth($user);
 
-        // Get waste bin data from waste_bin_type table (dummy data)
+        // Get waste bin data from waste_bin_type table
         $wasteBinData = $this->getWasteBinDataFromType();
 
-        // Get recent transactions (last 10)
+        // Get recent transactions (last 5)
         $recentTransactions = PointTransactions::with(['wasteBinType', 'user'])
-            ->where('user_id', $user->id)
-            ->orderBy('created_at', 'desc')
-            ->limit(10)
-            ->get();
-
-        // Get recent redemptions (last 5)
-        $recentRedemptions = PointRedemptions::with(['user'])
             ->where('user_id', $user->id)
             ->orderBy('created_at', 'desc')
             ->limit(5)
             ->get();
 
-        return view('user.dashboard.index', array_merge(compact('availablePoints', 'monthlyGrowth', 'recentTransactions', 'recentRedemptions'), $wasteBinData));
+        // Get recent waste collections (last 5)
+        $recentWasteCollections = WasteCollection::with(['wasteBinType', 'assignedTo'])
+            ->where('user_id', $user->id)
+            ->orderBy('created_at', 'desc')
+            ->limit(5)
+            ->get();
+
+        // Get recent redemptions (last 3)
+        $recentRedemptions = PointRedemptions::with(['user'])
+            ->where('user_id', $user->id)
+            ->orderBy('created_at', 'desc')
+            ->limit(3)
+            ->get();
+
+        // Combine all activities and sort by created_at
+        $recentActivities = $this->combineRecentActivities($recentTransactions, $recentWasteCollections, $recentRedemptions);
+
+        return view('user.dashboard.index', array_merge(compact('availablePoints', 'monthlyGrowth', 'recentActivities'), $wasteBinData));
+    }
+
+    /**
+     * Combine and sort all recent activities
+     */
+    private function combineRecentActivities($transactions, $collections, $redemptions)
+    {
+        $activities = collect();
+
+        // Add transactions
+        foreach ($transactions as $transaction) {
+            $activities->push([
+                'type' => 'transaction',
+                'data' => $transaction,
+                'created_at' => $transaction->created_at,
+                'title' => $transaction->getTypeLabel(),
+                'subtitle' => $transaction->wasteBinType ? ucfirst($transaction->wasteBinType->type) : '',
+                'description' => $transaction->description,
+                'points' => ($transaction->transaction_type == 'deposit' ? '+' : '-') . number_format($transaction->points),
+                'status' => $transaction->getStatusLabel(),
+                'status_class' => $this->getStatusColorClass($transaction->status),
+                'icon' => $transaction->transaction_type == 'deposit' ? 'bi-plus-circle' : 'bi-dash-circle',
+                'icon_class' => $transaction->getTypeColor(),
+            ]);
+        }
+
+        // Add waste collections
+        foreach ($collections as $collection) {
+            $activities->push([
+                'type' => 'waste_collection',
+                'data' => $collection,
+                'created_at' => $collection->created_at,
+                'title' => 'Pengambilan Sampah',
+                'subtitle' => $collection->getWasteTypesLabel(),
+                'description' => $collection->notes,
+                'points' => null,
+                'status' => $collection->getStatusLabel(),
+                'status_class' => $this->getWasteCollectionStatusClass($collection->status),
+                'icon' => $this->getWasteCollectionIcon($collection->status),
+                'icon_class' => $this->getWasteCollectionIconClass($collection->status),
+                'pickup_info' => $collection->pickup_date ? Carbon::parse($collection->pickup_date)->format('d M Y') . ' • ' . $collection->pickup_time : null,
+                'assigned_petugas' => $collection->assignedTo ? $collection->assignedTo->name : null,
+            ]);
+        }
+
+        // Add redemptions
+        foreach ($redemptions as $redemption) {
+            $activities->push([
+                'type' => 'redemption',
+                'data' => $redemption,
+                'created_at' => $redemption->created_at,
+                'title' => 'Penukaran Poin',
+                'subtitle' => ucfirst($redemption->redemption_type),
+                'description' => $redemption->notes,
+                'points' => '-' . number_format($redemption->points_redeemed),
+                'status' => ucfirst($redemption->status),
+                'status_class' => $this->getRedemptionStatusClass($redemption->status),
+                'icon' => 'bi-gift',
+                'icon_class' => 'warning',
+                'cash_value' => $redemption->cash_value ? 'Rp ' . number_format($redemption->cash_value, 0, ',', '.') : null,
+            ]);
+        }
+
+        // Sort by created_at descending and take only 10 latest
+        return $activities->sortByDesc('created_at')->take(10)->values();
+    }
+
+    /**
+     * Get status color class for transactions
+     */
+    private function getStatusColorClass($status)
+    {
+        return match ($status) {
+            PointTransactions::STATUS_PENDING => 'status-pending',
+            PointTransactions::STATUS_APPROVED => 'status-approved',
+            PointTransactions::STATUS_REJECTED => 'status-rejected',
+            default => 'status-pending',
+        };
+    }
+
+    /**
+     * Get status color class for waste collections
+     */
+    private function getWasteCollectionStatusClass($status)
+    {
+        return match ($status) {
+            WasteCollection::STATUS_PENDING => 'status-pending',
+            WasteCollection::STATUS_SCHEDULED => 'status-processing',
+            WasteCollection::STATUS_IN_PROGRESS => 'status-processing',
+            WasteCollection::STATUS_COMPLETED => 'status-approved',
+            WasteCollection::STATUS_CANCELLED => 'status-rejected',
+            default => 'status-pending',
+        };
+    }
+
+    /**
+     * Get icon for waste collections
+     */
+    private function getWasteCollectionIcon($status)
+    {
+        return match ($status) {
+            WasteCollection::STATUS_PENDING => 'bi-clock',
+            WasteCollection::STATUS_SCHEDULED => 'bi-calendar-check',
+            WasteCollection::STATUS_IN_PROGRESS => 'bi-truck',
+            WasteCollection::STATUS_COMPLETED => 'bi-check-circle',
+            WasteCollection::STATUS_CANCELLED => 'bi-x-circle',
+            default => 'bi-recycle',
+        };
+    }
+
+    /**
+     * Get icon class for waste collections
+     */
+    private function getWasteCollectionIconClass($status)
+    {
+        return match ($status) {
+            WasteCollection::STATUS_PENDING => 'warning',
+            WasteCollection::STATUS_SCHEDULED => 'secondary',
+            WasteCollection::STATUS_IN_PROGRESS => 'primary',
+            WasteCollection::STATUS_COMPLETED => 'success',
+            WasteCollection::STATUS_CANCELLED => 'danger',
+            default => 'secondary',
+        };
+    }
+
+    /**
+     * Get status color class for redemptions
+     */
+    private function getRedemptionStatusClass($status)
+    {
+        return match ($status) {
+            'pending' => 'status-pending',
+            'approved', 'completed' => 'status-approved',
+            'rejected', 'cancelled' => 'status-rejected',
+            default => 'status-pending',
+        };
     }
 
     private function calculateAvailablePoints(User $user): int
@@ -92,13 +238,13 @@ class UserController extends Controller
     private function getWasteBinDataFromType(): array
     {
         $user_bin_id = Auth::user()->waste_bin_code ? Bin::where('bin_code', Auth::user()->waste_bin_code)->value('id') : null;
-        // Get waste bin types with dummy percentage data
+
+        // Get waste bin types with percentage data
         $recycleBin = WasteBinType::where('type', 'recycle')->where('bin_id', $user_bin_id)->first();
         $nonRecycleBin = WasteBinType::where('type', 'non_recycle')->where('bin_id', $user_bin_id)->first();
 
-        // Set dummy percentage values (you can customize these or add percentage field to waste_bin_type table)
-        $recyclePercentage = (int) $recycleBin->current_percentage ?? 0;
-        $nonRecyclePercentage = (int) $nonRecycleBin->current_percentage ?? 0;
+        $recyclePercentage = (int) ($recycleBin->current_percentage ?? 0);
+        $nonRecyclePercentage = (int) ($nonRecycleBin->current_percentage ?? 0);
 
         // Calculate total waste volume (assuming each bin has 50L capacity)
         $binCapacity = 50; // Liters per bin
@@ -113,84 +259,6 @@ class UserController extends Controller
             'recycleVolume' => $recycleVolume,
             'nonRecycleVolume' => $nonRecycleVolume,
         ];
-    }
-
-    private function getDummyPercentage(string $type): float
-    {
-        // Generate realistic dummy data based on current time and type
-        // This will give consistent but varying percentages throughout the day
-        $seed = (int) (time() / 3600) + ($type === 'recycle' ? 1 : 2); // Changes every hour
-        mt_srand($seed);
-
-        // Recycle bins tend to fill slower than non-recycle
-        if ($type === 'recycle') {
-            return min(85, mt_rand(15, 70) + (mt_rand(0, 100) > 80 ? mt_rand(10, 15) : 0));
-        } else {
-            return min(90, mt_rand(25, 80) + (mt_rand(0, 100) > 70 ? mt_rand(5, 10) : 0));
-        }
-    }
-
-    private function getWasteBinData(): array
-    {
-        // Get latest sensor readings for each waste bin type
-        $recycleData = SensorReadings::with('wasteBinType')
-            ->whereHas('wasteBinType', function ($query) {
-                $query->where('type', 'recycle');
-            })
-            ->latest('reading_time')
-            ->first();
-
-        $nonRecycleData = SensorReadings::with('wasteBinType')
-            ->whereHas('wasteBinType', function ($query) {
-                $query->where('type', 'non_recycle');
-            })
-            ->latest('reading_time')
-            ->first();
-
-        $recyclePercentage = $recycleData ? $recycleData->percentage : 0;
-        $nonRecyclePercentage = $nonRecycleData ? $nonRecycleData->percentage : 0;
-
-        // Calculate total volume (assuming each bin has 50L capacity)
-        $totalWasteVolume = ($recyclePercentage + $nonRecyclePercentage) * 0.5;
-
-        return [
-            'recyclePercentage' => $recyclePercentage,
-            'nonRecyclePercentage' => $nonRecyclePercentage,
-            'totalWasteVolume' => $totalWasteVolume,
-            'recycleData' => $recycleData,
-            'nonRecycleData' => $nonRecycleData,
-        ];
-    }
-
-    public function refreshSensorData()
-    {
-        // AJAX endpoint untuk refresh data sensor secara real-time
-        $wasteBinData = $this->getWasteBinData();
-
-        return response()->json($wasteBinData);
-    }
-
-    public function getRecentActivity(Request $request)
-    {
-        $user = Auth::user();
-        $limit = $request->get('limit', 10);
-
-        $transactions = PointTransactions::with(['wasteBinType', 'user'])
-            ->where('user_id', $user->id)
-            ->orderBy('created_at', 'desc')
-            ->limit($limit)
-            ->get();
-
-        $redemptions = PointRedemptions::with(['user'])
-            ->where('user_id', $user->id)
-            ->orderBy('created_at', 'desc')
-            ->limit(5)
-            ->get();
-
-        return response()->json([
-            'transactions' => $transactions,
-            'redemptions' => $redemptions,
-        ]);
     }
 
     public function nabung()

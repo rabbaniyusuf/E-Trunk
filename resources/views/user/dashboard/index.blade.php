@@ -288,6 +288,157 @@
             color: var(--secondary-color);
         }
 
+        /* Additional styles for waste collection activities */
+        /* Additional styles for waste collection activities */
+        .activity-icon.primary {
+            background-color: #dbeafe;
+            color: #2563eb;
+        }
+
+        .activity-icon.info {
+            background-color: #e0f2fe;
+            color: #0369a1;
+        }
+
+        .status-badge.status-processing {
+            background-color: #e0f2fe;
+            color: #0369a1;
+        }
+
+        .status-badge.status-scheduled {
+            background-color: #f1f5f9;
+            color: #475569;
+        }
+
+        /* Activity type indicators styling */
+        .activity-type-indicator {
+            position: absolute;
+            top: -3px;
+            right: -3px;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            border: 2px solid white;
+            z-index: 1;
+        }
+
+        .activity-type-indicator.transaction {
+            background-color: #10b981;
+        }
+
+        .activity-type-indicator.waste-collection {
+            background-color: #3b82f6;
+        }
+
+        .activity-type-indicator.redemption {
+            background-color: #f59e0b;
+        }
+
+        /* Button styling */
+        .btn-xs {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.75rem;
+            line-height: 1.25;
+            border-radius: 0.375rem;
+        }
+
+        /* Activity time info styling */
+        .activity-time-info small {
+            line-height: 1.4;
+        }
+
+        /* Loading spinner positioning */
+        #activities-loading {
+            min-height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        /* Collection details modal */
+        .collection-details h6 {
+            color: var(--primary-color);
+            border-bottom: 1px solid #e2e8f0;
+            padding-bottom: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        /* Improved activity item responsive design */
+        @media (max-width: 576px) {
+            .activity-item .activity-details {
+                margin-top: 0.5rem;
+            }
+
+            .activity-item .activity-meta {
+                flex-direction: column;
+                align-items: flex-start !important;
+                gap: 0.5rem;
+            }
+
+            .activity-item .activity-points {
+                margin-bottom: 0.25rem;
+            }
+
+            .activity-item .status-badge {
+                align-self: flex-start;
+            }
+        }
+
+        /* Activity type indicators */
+        .activity-type-indicator {
+            position: absolute;
+            top: -2px;
+            right: -2px;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            border: 2px solid white;
+        }
+
+        .activity-type-indicator.transaction {
+            background-color: #10b981;
+        }
+
+        .activity-type-indicator.waste-collection {
+            background-color: #3b82f6;
+        }
+
+        .activity-type-indicator.redemption {
+            background-color: #f59e0b;
+        }
+
+        /* Enhanced activity item hover effects */
+        .activity-item:hover .activity-icon {
+            transform: scale(1.1);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .activity-item:hover {
+            background-color: #f8fafc;
+            border-radius: 0.75rem;
+            margin: 0 -1rem;
+            padding: 1rem 1.5rem;
+            transition: all 0.3s ease;
+        }
+
+        /* Status-specific styling */
+        .text-completed {
+            color: #16a34a !important;
+        }
+
+        .text-in-progress {
+            color: #2563eb !important;
+        }
+
+        .text-scheduled {
+            color: #64748b !important;
+        }
+
+        .text-cancelled {
+            color: #dc2626 !important;
+        }
+
         @media (max-width: 768px) {
             .welcome-card {
                 padding: 1.5rem 1rem;
@@ -585,103 +736,159 @@
         </div>
     </div>
 
-    <!-- Recent Activity -->
     <div class="row">
         <div class="col-12">
             <div class="recent-activity">
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <h5 class="mb-0">Aktivitas Terbaru</h5>
-                    <a href="{{ route('user.riwayat-transaksi') }}" class="btn btn-outline-primary btn-sm">
-                        Lihat Semua
-                    </a>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-outline-secondary btn-sm" onclick="refreshActivities()">
+                            <i class="bi bi-arrow-clockwise"></i>
+                        </button>
+                        <a href="{{ route('user.riwayat-transaksi') }}" class="btn btn-outline-primary btn-sm">
+                            Lihat Semua
+                        </a>
+                    </div>
                 </div>
 
-                @if ($recentTransactions->count() > 0)
-                    @foreach ($recentTransactions as $transaction)
-                        <div class="activity-item">
-                            <div class="activity-icon {{ $transaction->getTypeColor() }}">
-                                <i
-                                    class="bi {{ $transaction->transaction_type == 'deposit' ? 'bi-plus-circle' : 'bi-dash-circle' }}"></i>
-                            </div>
-                            <div class="flex-grow-1">
-                                <div class="d-flex justify-content-between align-items-start">
-                                    <div>
-                                        <h6 class="mb-1">
-                                            {{ $transaction->getTypeLabel() }}
-                                            @if ($transaction->wasteBinType)
-                                                - {{ ucfirst($transaction->wasteBinType->type) }}
-                                            @endif
-                                        </h6>
-                                        <small class="text-muted d-block">
-                                            {{ $transaction->created_at->format('d M Y, H:i') }}
-                                            @if ($transaction->percentage_deposited && $transaction->transaction_type == 'deposit')
-                                                • {{ number_format($transaction->percentage_deposited, 1) }}% volume
-                                            @endif
-                                        </small>
-                                        @if ($transaction->description)
-                                            <small class="text-muted d-block mt-1">{{ $transaction->description }}</small>
-                                        @endif
-                                    </div>
-                                    <div class="text-end">
-                                        <div class="fw-semibold text-{{ $transaction->getTypeColor() }}">
-                                            {{ $transaction->transaction_type == 'deposit' ? '+' : '-' }}{{ number_format($transaction->points) }}
-                                            poin
-                                        </div>
-                                        <span
-                                            class="status-badge status-{{ strtolower(str_replace('_', '-', $transaction->status)) }} {{ $transaction->getStatusBadgeClass() }}">
-                                            {{ $transaction->getStatusLabel() }}
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    @endforeach
-
-                    {{-- Show Point Redemptions if available --}}
-                    @if (isset($recentRedemptions) && $recentRedemptions->count() > 0)
-                        <hr class="my-3">
-                        <h6 class="text-muted mb-3">Penukaran Poin Terbaru</h6>
-                        @foreach ($recentRedemptions as $redemption)
+                <div id="activities-container">
+                    @if (isset($recentActivities) && $recentActivities->count() > 0)
+                        @foreach ($recentActivities as $activity)
                             <div class="activity-item">
-                                <div class="activity-icon withdrawal">
-                                    <i class="bi bi-gift"></i>
+                                <div class="activity-icon {{ $activity['icon_class'] }} position-relative">
+                                    <i class="bi {{ $activity['icon'] }}"></i>
+                                    {{-- Activity type indicator --}}
+                                    <div
+                                        class="activity-type-indicator {{ $activity['type'] == 'transaction' ? 'transaction' : ($activity['type'] == 'waste_collection' ? 'waste-collection' : 'redemption') }}">
+                                    </div>
                                 </div>
                                 <div class="flex-grow-1">
-                                    <div class="d-flex justify-content-between align-items-start">
-                                        <div>
+                                    <div class="d-flex justify-content-between align-items-start activity-meta">
+                                        <div class="activity-details">
                                             <h6 class="mb-1">
-                                                Penukaran {{ ucfirst($redemption->redemption_type) }}
-                                            </h6>
-                                            <small class="text-muted d-block">
-                                                {{ $redemption->created_at->format('d M Y, H:i') }}
-                                                @if ($redemption->cash_value)
-                                                    • Rp {{ number_format($redemption->cash_value, 0, ',', '.') }}
+                                                {{ $activity['title'] }}
+                                                @if ($activity['subtitle'])
+                                                    <span class="text-muted">- {{ $activity['subtitle'] }}</span>
                                                 @endif
-                                            </small>
-                                            @if ($redemption->notes)
-                                                <small class="text-muted d-block mt-1">{{ $redemption->notes }}</small>
+                                            </h6>
+
+                                            <div class="activity-time-info">
+                                                <small class="text-muted d-block">
+                                                    <i class="bi bi-clock me-1"></i>
+                                                    {{ $activity['created_at']->format('d M Y, H:i') }}
+
+                                                    {{-- Additional info for waste collection --}}
+                                                    @if ($activity['type'] == 'waste_collection' && $activity['pickup_info'])
+                                                        <br><i
+                                                            class="bi bi-calendar-event me-1"></i>{{ $activity['pickup_info'] }}
+                                                    @endif
+
+                                                    {{-- Additional info for transactions --}}
+                                                    @if (
+                                                        $activity['type'] == 'transaction' &&
+                                                            isset($activity['data']->percentage_deposited) &&
+                                                            $activity['data']->percentage_deposited &&
+                                                            $activity['data']->transaction_type == 'deposit')
+                                                        <br><i
+                                                            class="bi bi-archive me-1"></i>{{ number_format($activity['data']->percentage_deposited, 1) }}%
+                                                        volume
+                                                    @endif
+
+                                                    {{-- Additional info for redemptions --}}
+                                                    @if ($activity['type'] == 'redemption' && $activity['cash_value'])
+                                                        <br><i class="bi bi-cash me-1"></i>{{ $activity['cash_value'] }}
+                                                    @endif
+                                                </small>
+                                            </div>
+
+                                            {{-- Assigned petugas for waste collection --}}
+                                            @if ($activity['type'] == 'waste_collection' && $activity['assigned_petugas'])
+                                                <small class="text-success d-block mt-1">
+                                                    <i class="bi bi-person-check me-1"></i>Petugas:
+                                                    {{ $activity['assigned_petugas'] }}
+                                                </small>
+                                            @endif
+
+                                            {{-- Description --}}
+                                            @if ($activity['description'])
+                                                <div class="activity-description mt-2">
+                                                    <small
+                                                        class="text-muted">{{ Str::limit($activity['description'], 100) }}</small>
+                                                </div>
                                             @endif
                                         </div>
-                                        <div class="text-end">
-                                            <div class="fw-semibold text-warning">
-                                                -{{ number_format($redemption->points_redeemed) }} poin
-                                            </div>
-                                            <span class="status-badge status-{{ $redemption->status }}">
-                                                {{ ucfirst($redemption->status) }}
+
+                                        <div class="text-end activity-summary">
+                                            {{-- Points display --}}
+                                            @if ($activity['points'])
+                                                <div
+                                                    class="fw-semibold text-{{ $activity['icon_class'] }} activity-points mb-1">
+                                                    {{ $activity['points'] }} poin
+                                                </div>
+                                            @endif
+
+                                            {{-- Status badge --}}
+                                            <span class="status-badge {{ $activity['status_class'] }}">
+                                                {{ $activity['status'] }}
                                             </span>
+
+                                            {{-- Additional action button for waste collection --}}
+                                            @if (
+                                                $activity['type'] == 'waste_collection' &&
+                                                    in_array($activity['data']->status, [
+                                                        App\Models\WasteCollection::STATUS_PENDING,
+                                                        App\Models\WasteCollection::STATUS_SCHEDULED,
+                                                    ]))
+                                                <div class="mt-2">
+                                                    <button class="btn btn-outline-info btn-xs"
+                                                        onclick="viewCollectionDetails({{ $activity['data']->id }})">
+                                                        <i class="bi bi-eye"></i> Detail
+                                                    </button>
+                                                </div>
+                                            @endif
                                         </div>
                                     </div>
                                 </div>
                             </div>
                         @endforeach
+
+                        {{-- Load more button --}}
+                        <div class="text-center mt-3">
+                            <button class="btn btn-outline-secondary btn-sm" onclick="loadMoreActivities()">
+                                <i class="bi bi-plus-circle me-1"></i> Muat Lebih Banyak
+                            </button>
+                        </div>
+                    @else
+                        <div class="empty-state">
+                            <i class="bi bi-clock-history"></i>
+                            <h6>Belum ada aktivitas</h6>
+                            <p class="text-muted mb-3">Mulai nabung sampah untuk melihat aktivitas Anda.</p>
+                        </div>
                     @endif
-                @else
-                    <div class="empty-state">
-                        <i class="bi bi-clock-history"></i>
-                        <h6>Belum ada aktivitas</h6>
-                        <p class="text-muted mb-0">Mulai nabung sampah untuk melihat aktivitas Anda.</p>
+                </div>
+
+                {{-- Loading spinner --}}
+                <div id="activities-loading" class="text-center py-3" style="display: none;">
+                    <div class="spinner-border spinner-border-sm text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
                     </div>
-                @endif
+                    <span class="ms-2 text-muted">Memuat aktivitas...</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {{-- Collection Details Modal --}}
+    <div class="modal fade" id="collectionDetailsModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Detail Pengambilan Sampah</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="collectionDetailsContent">
+                    {{-- Content will be loaded via AJAX --}}
+                </div>
             </div>
         </div>
     </div>

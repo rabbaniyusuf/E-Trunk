@@ -10,6 +10,11 @@
                 <h1 class="h3 mb-1">Approval Penukaran Poin</h1>
                 <p class="text-muted mb-0">Kelola permintaan penukaran poin dari masyarakat</p>
             </div>
+            <div>
+                <a href="{{ route('admin.approvals.collections') }}" class="btn btn-outline-primary">
+                    <i class="bi bi-collection"></i> Lihat Collection Selesai
+                </a>
+            </div>
         </div>
 
         <!-- Statistics Cards -->
@@ -20,7 +25,7 @@
                         <div class="row no-gutters align-items-center">
                             <div class="col mr-2">
                                 <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
-                                    Menunggu Approval
+                                    Menunggu Diambil
                                 </div>
                                 <div class="h5 mb-0 font-weight-bold text-gray-800">
                                     {{ number_format($stats['pending']) }}
@@ -40,7 +45,7 @@
                         <div class="row no-gutters align-items-center">
                             <div class="col mr-2">
                                 <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
-                                    Disetujui
+                                    Sudah Diambil
                                 </div>
                                 <div class="h5 mb-0 font-weight-bold text-gray-800">
                                     {{ number_format($stats['approved']) }}
@@ -60,7 +65,7 @@
                         <div class="row no-gutters align-items-center">
                             <div class="col mr-2">
                                 <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">
-                                    Ditolak
+                                    Gagal Diambil
                                 </div>
                                 <div class="h5 mb-0 font-weight-bold text-gray-800">
                                     {{ number_format($stats['rejected']) }}
@@ -103,10 +108,11 @@
                         <label for="status" class="form-label">Status</label>
                         <select name="status" id="status" class="form-select">
                             <option value="">Semua Status</option>
-                            <option value="pending" {{ request('status') === 'pending' ? 'selected' : '' }}>Pending</option>
-                            <option value="approved" {{ request('status') === 'approved' ? 'selected' : '' }}>Disetujui
+                            <option value="pending" {{ request('status') === 'pending' ? 'selected' : '' }}>Menunggu Diambil
                             </option>
-                            <option value="rejected" {{ request('status') === 'rejected' ? 'selected' : '' }}>Ditolak
+                            <option value="approved" {{ request('status') === 'approved' ? 'selected' : '' }}>Sudah Diambil
+                            </option>
+                            <option value="rejected" {{ request('status') === 'rejected' ? 'selected' : '' }}>Gagal Diambil
                             </option>
                         </select>
                     </div>
@@ -146,7 +152,7 @@
             <div class="card-header d-flex justify-content-between align-items-center">
                 <h5 class="mb-0">Daftar Permintaan Penukaran Poin</h5>
 
-                @if ($approvals->where('status', 'pending')->count() > 0)
+                @if ($approvals->where('status', \App\Models\PointTransactions::STATUS_PENDING)->count() > 0)
                     <div class="dropdown">
                         <button class="btn btn-outline-primary dropdown-toggle" type="button" data-bs-toggle="dropdown">
                             <i class="bi bi-check2-all"></i> Bulk Actions
@@ -173,7 +179,7 @@
                         <table class="table table-hover mb-0">
                             <thead class="table-light">
                                 <tr>
-                                    @if ($approvals->where('status', 'pending')->count() > 0)
+                                    @if ($approvals->where('status', \App\Models\PointTransactions::STATUS_PENDING)->count() > 0)
                                         <th width="50">
                                             <input type="checkbox" id="selectAll" class="form-check-input">
                                         </th>
@@ -189,9 +195,9 @@
                             <tbody>
                                 @foreach ($approvals as $approval)
                                     <tr>
-                                        @if ($approvals->where('status', 'pending')->count() > 0)
+                                        @if ($approvals->where('status', \App\Models\PointTransactions::STATUS_PENDING)->count() > 0)
                                             <td>
-                                                @if ($approval->status === 'pending')
+                                                @if ($approval->status === \App\Models\PointTransactions::STATUS_PENDING)
                                                     <input type="checkbox" name="selected_approvals[]"
                                                         value="{{ $approval->id }}"
                                                         class="form-check-input approval-checkbox">
@@ -212,7 +218,7 @@
                                         </td>
                                         <td>
                                             <span class="badge bg-light text-dark">
-                                                {{ $approval->wasteBinType->name ?? 'N/A' }}
+                                                {{ $approval->collectionRequest->wasteBinType->name ?? 'N/A' }}
                                             </span>
                                         </td>
                                         <td>
@@ -224,13 +230,9 @@
                                             <small class="text-muted">{{ $approval->created_at->diffForHumans() }}</small>
                                         </td>
                                         <td>
-                                            @if ($approval->status === 'pending')
-                                                <span class="badge bg-warning">Pending</span>
-                                            @elseif($approval->status === 'approved')
-                                                <span class="badge bg-success">Disetujui</span>
-                                            @else
-                                                <span class="badge bg-danger">Ditolak</span>
-                                            @endif
+                                            <span class="badge {{ $approval->getStatusBadgeClass() }}">
+                                                {{ $approval->getStatusLabel() }}
+                                            </span>
                                         </td>
                                         <td>
                                             <div class="btn-group btn-group-sm">
@@ -239,7 +241,7 @@
                                                     <i class="bi bi-eye"></i>
                                                 </a>
 
-                                                @if ($approval->status === 'pending')
+                                                @if ($approval->status === \App\Models\PointTransactions::STATUS_PENDING)
                                                     <button type="button" class="btn btn-outline-success"
                                                         onclick="quickApprove({{ $approval->id }}, 'approved')"
                                                         title="Setujui">
@@ -312,7 +314,7 @@
     </div>
 
     <!-- Quick Approval Forms -->
-    @foreach ($approvals->where('status', 'pending') as $approval)
+    @foreach ($approvals->where('status', \App\Models\PointTransactions::STATUS_PENDING) as $approval)
         <form id="quickApprovalForm{{ $approval->id }}" method="POST"
             action="{{ route('admin.approvals.update', $approval) }}" style="display: none;">
             @csrf

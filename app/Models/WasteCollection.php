@@ -15,6 +15,10 @@ class WasteCollection extends Model
     const STATUS_COMPLETED = 'SELESAI';
     const STATUS_CANCELLED = 'DIBATALKAN';
 
+    const POINT_STATUS_PENDING = 'pending';
+    const POINT_STATUS_APPROVED = 'approved';
+    const POINT_STATUS_REJECTED = 'rejected';
+
     protected $fillable = [
         'user_id',
         'waste_bin_type_id',
@@ -59,7 +63,7 @@ class WasteCollection extends Model
 
     public function pointTransactions()
     {
-        return $this->hasMany(PointTransactions::class, 'collection_request_id');
+        return $this->hasMany(PointTransactions::class, 'waste_collection_id');
     }
 
     public function notifications()
