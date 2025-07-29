@@ -198,18 +198,9 @@ class UserController extends Controller
 
     private function calculateAvailablePoints(User $user): int
     {
-        // Calculate total points from approved deposits
-        $totalDeposits = PointTransactions::where('user_id', $user->id)->where('transaction_type', 'deposit')->where('status', PointTransactions::STATUS_APPROVED)->sum('points');
+        $balance = $user->balance ?? 0;
 
-        // Calculate total points from approved withdrawals
-        $totalWithdrawals = PointTransactions::where('user_id', $user->id)->where('transaction_type', 'withdrawal')->where('status', PointTransactions::STATUS_APPROVED)->sum('points');
-
-        // Calculate total redeemed points
-        $totalRedemptions = PointRedemptions::where('user_id', $user->id)
-            ->whereIn('status', ['completed', 'approved'])
-            ->sum('points_redeemed');
-
-        return max(0, $totalDeposits - $totalWithdrawals - $totalRedemptions);
+        return $balance;
     }
 
     private function calculateMonthlyGrowth(User $user): float
@@ -595,6 +586,133 @@ class UserController extends Controller
         });
 
         return view('user.nabung.tukar-poin', compact('currentPoints', 'availableOptions'));
+    }
+
+    public function storeTukarPoin(Request $request)
+    {
+        $user = Auth::user();
+
+        $request->validate([
+            'points_to_redeem' => 'required',
+            'custom_points' => 'nullable|integer|min:10|max:' . $user->balance,
+        ]);
+
+        // Determine points to redeem
+        $pointsToRedeem = 0;
+        if ($request->points_to_redeem === 'custom') {
+            $pointsToRedeem = $request->custom_points;
+
+            // Validate custom points
+            if ($pointsToRedeem < 10 || $pointsToRedeem > $user->balance || $pointsToRedeem % 10 !== 0) {
+                return back()->withErrors(['custom_points' => 'Jumlah poin harus minimal 10, maksimal ' . $user->balance . ', dan kelipatan 10.']);
+            }
+        } else {
+            $pointsToRedeem = (int) $request->points_to_redeem;
+        }
+
+        // Check if user has enough points
+        if ($pointsToRedeem > $user->balance) {
+            return back()->withErrors(['points' => 'Saldo poin tidak mencukupi.']);
+        }
+
+        // Deklarasikan variabel sebelum transaksi
+        $redemption = null;
+
+        try {
+            DB::transaction(function () use ($user, $pointsToRedeem, &$redemption) {
+                // Perhatikan &$redemption
+                // Create redemption record
+                $redemption = PointRedemptions::create([
+                    'user_id' => $user->id,
+                    'points_redeemed' => $pointsToRedeem,
+                    'cash_value' => PointRedemptions::calculateCashValue($pointsToRedeem),
+                    'redemption_type' => 'cash',
+                    'status' => PointRedemptions::STATUS_PENDING,
+                ]);
+
+                // Deduct points from user balance
+                $user->decrement('balance', $pointsToRedeem);
+            });
+
+            // Redirect dengan $redemption yang sekarang terdefinisi
+            return redirect()
+                ->route('user.tukar-poin.bukti', ['redemption' => $redemption->id])
+                ->with('success', 'Pengajuan penukaran poin berhasil! Silakan tunjukkan bukti ini kepada admin.');
+        } catch (\Exception $e) {
+            // Hapus dd() di production, gunakan logging yang sesuai
+            // dd($e->getMessage());
+            return back()->withErrors(['error' => 'Terjadi kesalahan saat memproses penukaran poin.']);
+        }
+    }
+
+    public function buktiTukarPoin(PointRedemptions $redemption)
+    {
+        // Check if the redemption belongs to the authenticated user
+        if ($redemption->user_id !== Auth::id()) {
+            abort(403, 'Unauthorized access.');
+        }
+
+        return view('user.nabung.bukti-tukar-poin', compact('redemption'));
+    }
+
+    public function daftarTukarPoin()
+    {
+        $user = Auth::user();
+        $redemptions = $user->pointRedemptions()->orderBy('created_at', 'desc')->paginate(10);
+
+        return view('user.nabung.daftar-tukar-poin', compact('redemptions'));
+    }
+
+    public function cancelTukarPoin(PointRedemptions $redemption)
+    {
+        // Check if the redemption belongs to the authenticated user
+        if ($redemption->user_id !== Auth::id()) {
+            abort(403, 'Unauthorized access.');
+        }
+
+        // Can only cancel pending redemptions
+        if ($redemption->status !== 'pending') {
+            return back()->withErrors(['error' => 'Hanya penukaran dengan status pending yang dapat dibatalkan.']);
+        }
+
+        try {
+            DB::transaction(function () use ($redemption) {
+                // Return points to user
+                $redemption->user->increment('balance', $redemption->points_redeemed);
+
+                // Create reversal transaction
+                PointTransactions::create([
+                    'user_id' => $redemption->user_id,
+                    'type' => 'reversal',
+                    'points' => $redemption->points_redeemed,
+                    'description' => 'Pengembalian poin - Penukaran dibatalkan oleh user: ' . $redemption->redemption_code,
+                    'status' => 'completed',
+                ]);
+
+                // Update redemption status
+                $redemption->update([
+                    'status' => PointRedemptions::STATUS_CANCELLED,
+                    'notes' => 'Dibatalkan oleh user pada ' . now()->format('d/m/Y H:i'),
+                    'processed_at' => now(),
+                ]);
+            });
+
+            return redirect()->route('user.tukar-poin.daftar')->with('success', 'Penukaran berhasil dibatalkan. Poin telah dikembalikan ke saldo Anda.');
+        } catch (\Exception $e) {
+            return back()->withErrors(['error' => 'Terjadi kesalahan saat membatalkan penukaran.']);
+        }
+    }
+
+    public function riwayatTransaksi()
+    {
+        $transactions = auth()
+            ->user()
+            ->pointTransactions()
+            ->with(['processedBy:id,name', 'collectionRequest'])
+            ->orderBy('created_at', 'desc')
+            ->paginate(10);
+
+        return view('user.riwayat-transaksi.index', compact('transactions'));
     }
 
     // public function calculatePoints(Request $request)

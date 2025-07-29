@@ -96,8 +96,8 @@ class PointTransactions extends Model
     {
         return match($this->status) {
             self::STATUS_PENDING => 'Menunggu Diambil',
-            self::STATUS_APPROVED => 'Sudah Diambil',
-            self::STATUS_REJECTED => 'Gagal Diambil',
+            self::STATUS_APPROVED => 'Disetujui',
+            self::STATUS_REJECTED => 'Gagal Disetujui',
             default => 'Tidak Diketahui'
         };
     }

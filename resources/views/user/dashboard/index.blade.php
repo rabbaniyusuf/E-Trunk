@@ -196,6 +196,18 @@
             box-shadow: 0 8px 25px rgba(245, 158, 11, 0.4);
             color: white;
         }
+        .btn-danger-custom {
+            background: linear-gradient(135deg, var(--danger-color) 0%, #d97706 100%);
+            border: none;
+            color: white;
+            box-shadow: 0 4px 15px rgba(245, 158, 11, 0.3);
+        }
+
+        .btn-danger-custom:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(245, 158, 11, 0.4);
+            color: white;
+        }
 
         .recent-activity {
             background: white;
@@ -723,13 +735,16 @@
                 <h5 class="mb-3">Aksi Cepat</h5>
                 <div class="d-flex flex-wrap justify-content-center">
                     <a href="{{ route('user.nabung') }}" class="btn btn-primary-custom action-btn">
-                        <i class="bi bi-plus-circle"></i> Nabung Poin
+                        <i class="bi bi-plus-circle"></i> Nabung Sampah
                     </a>
                     <a href="{{ route('user.tukar-poin') }}" class="btn btn-success-custom action-btn">
                         <i class="bi bi-gift"></i> Tukar Poin
                     </a>
                     <a href="{{ route('user.riwayat-transaksi') }}" class="btn btn-warning-custom action-btn">
                         <i class="bi bi-clock-history"></i> Riwayat Transaksi
+                    </a>
+                    <a href="{{ route('user.tukar-poin.daftar') }}" class="btn btn-danger-custom action-btn">
+                        <i class="bi bi-coin"></i> Daftar Penukaran Saldo
                     </a>
                 </div>
             </div>
@@ -742,9 +757,7 @@
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <h5 class="mb-0">Aktivitas Terbaru</h5>
                     <div class="d-flex gap-2">
-                        <button class="btn btn-outline-secondary btn-sm" onclick="refreshActivities()">
-                            <i class="bi bi-arrow-clockwise"></i>
-                        </button>
+
                         <a href="{{ route('user.riwayat-transaksi') }}" class="btn btn-outline-primary btn-sm">
                             Lihat Semua
                         </a>
@@ -851,13 +864,6 @@
                                 </div>
                             </div>
                         @endforeach
-
-                        {{-- Load more button --}}
-                        <div class="text-center mt-3">
-                            <button class="btn btn-outline-secondary btn-sm" onclick="loadMoreActivities()">
-                                <i class="bi bi-plus-circle me-1"></i> Muat Lebih Banyak
-                            </button>
-                        </div>
                     @else
                         <div class="empty-state">
                             <i class="bi bi-clock-history"></i>

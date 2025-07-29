@@ -12,7 +12,7 @@
                 </a>
                 <div>
                     <h3 class="mb-0">Tukar Poin</h3>
-                    <p class="text-muted mb-0">Tukar poin Anda dengan uang tunai atau donasi</p>
+                    <p class="text-muted mb-0">Tukar poin Anda dengan uang tunai</p>
                 </div>
             </div>
 
@@ -35,23 +35,18 @@
                         <div class="col-md-6 mt-3 mt-md-0">
                             <div class="bg-light rounded p-3">
                                 <div class="small text-muted mb-1">Nilai Tukar</div>
-                                <div class="fw-bold">20 poin = Rp 1.000</div>
+                                <div class="fw-bold">10 poin = Rp 1.000</div>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            @if ($currentPoints < 20)
+            @if ($currentPoints < 10)
                 <div class="alert alert-info">
                     <i class="bi bi-info-circle"></i>
-                    Anda memerlukan minimal 20 poin untuk melakukan penukaran. Saldo poin Anda saat ini:
+                    Anda memerlukan minimal 10 poin untuk melakukan penukaran. Saldo poin Anda saat ini:
                     {{ number_format($currentPoints) }} poin.
-                </div>
-            @elseif(empty($availableOptions))
-                <div class="alert alert-warning">
-                    <i class="bi bi-exclamation-triangle"></i>
-                    Poin Anda tidak mencukupi untuk melakukan penukaran dengan kelipatan yang tersedia.
                 </div>
             @else
                 <!-- Redemption Form -->
@@ -63,7 +58,7 @@
                         </h5>
                     </div>
                     <div class="card-body">
-                        <form id="redemptionForm" action="{{ route('user.points.redemption.process') }}" method="POST">
+                        <form id="redemptionForm" action="{{ route('user.tukar-poin.store') }}" method="POST">
                             @csrf
 
                             <!-- Points Selection -->
@@ -72,7 +67,7 @@
                                 <div class="row g-3">
                                     @foreach ($availableOptions as $points)
                                         @php
-                                            $cashValue = ($points / 20) * 1000;
+                                            $cashValue = ($points / 10) * 1000;
                                         @endphp
                                         <div class="col-md-6 col-lg-4">
                                             <div class="card point-option" data-points="{{ $points }}">
@@ -93,55 +88,47 @@
                                             </div>
                                         </div>
                                     @endforeach
-                                </div>
-                            </div>
 
-                            <!-- Redemption Type -->
-                            <div id="redemptionTypeSection" class="d-none mb-4">
-                                <label class="form-label fw-bold">Pilih jenis penukaran:</label>
-                                <div class="row g-3">
-                                    <div class="col-md-6">
-                                        <div class="card redemption-type-option" data-type="cash">
-                                            <div class="card-body">
+                                    <!-- Custom Points Option -->
+                                    <div class="col-md-6 col-lg-4">
+                                        <div class="card point-option" data-points="custom">
+                                            <div class="card-body text-center">
                                                 <div class="form-check">
-                                                    <input class="form-check-input" type="radio" name="redemption_type"
-                                                        value="cash" id="type_cash">
-                                                    <label class="form-check-label w-100" for="type_cash">
-                                                        <div class="d-flex align-items-center">
-                                                            <div class="bg-success bg-opacity-10 rounded-circle p-2 me-3">
-                                                                <i class="bi bi-cash text-success"></i>
-                                                            </div>
-                                                            <div>
-                                                                <div class="fw-bold">Uang Tunai</div>
-                                                                <div class="small text-muted">Petugas akan mengantarkan
-                                                                    tunai ke alamat Anda</div>
-                                                            </div>
+                                                    <input class="form-check-input" type="radio" name="points_to_redeem"
+                                                        value="custom" id="points_custom">
+                                                    <label class="form-check-label w-100" for="points_custom">
+                                                        <div class="fw-bold text-primary mb-1">
+                                                            <i class="bi bi-pencil-square"></i> Pilih Sendiri
                                                         </div>
+                                                        <div class="text-muted small">Tentukan jumlah</div>
                                                     </label>
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
+                                </div>
+                            </div>
+
+                            <!-- Custom Points Input -->
+                            <div id="customPointsSection" class="d-none mb-4">
+                                <label class="form-label fw-bold">Masukkan jumlah poin:</label>
+                                <div class="row">
                                     <div class="col-md-6">
-                                        <div class="card redemption-type-option" data-type="donation">
-                                            <div class="card-body">
-                                                <div class="form-check">
-                                                    <input class="form-check-input" type="radio" name="redemption_type"
-                                                        value="donation" id="type_donation">
-                                                    <label class="form-check-label w-100" for="type_donation">
-                                                        <div class="d-flex align-items-center">
-                                                            <div class="bg-info bg-opacity-10 rounded-circle p-2 me-3">
-                                                                <i class="bi bi-heart text-info"></i>
-                                                            </div>
-                                                            <div>
-                                                                <div class="fw-bold">Donasi</div>
-                                                                <div class="small text-muted">Sumbangkan untuk program
-                                                                    lingkungan</div>
-                                                            </div>
-                                                        </div>
-                                                    </label>
-                                                </div>
-                                            </div>
+                                        <div class="input-group">
+                                            <input type="number" class="form-control" name="custom_points"
+                                                id="customPointsInput" min="10" max="{{ $currentPoints }}"
+                                                step="10" placeholder="Minimum 10 poin">
+                                            <span class="input-group-text">poin</span>
+                                        </div>
+                                        <div class="form-text">
+                                            Minimal 10 poin, maksimal {{ number_format($currentPoints) }} poin.
+                                            <br>Harus kelipatan 10.
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6 mt-3 mt-md-0">
+                                        <div class="bg-light rounded p-3">
+                                            <div class="small text-muted mb-1">Nilai yang akan diterima:</div>
+                                            <div class="fw-bold text-success h5 mb-0" id="customCashValue">Rp 0</div>
                                         </div>
                                     </div>
                                 </div>
@@ -157,28 +144,23 @@
                                         </h6>
                                         <div class="row">
                                             <div class="col-sm-6">
-                                                <div class="d-flex justify-content-between">
+                                                <div class="d-flex justify-content-between mb-2">
                                                     <span>Poin yang ditukar:</span>
                                                     <span class="fw-bold" id="summaryPoints">0 poin</span>
                                                 </div>
-                                            </div>
-                                            <div class="col-sm-6">
                                                 <div class="d-flex justify-content-between">
                                                     <span>Nilai tukar:</span>
                                                     <span class="fw-bold text-success" id="summaryCashValue">Rp 0</span>
                                                 </div>
                                             </div>
-                                        </div>
-                                        <hr class="my-2">
-                                        <div class="d-flex justify-content-between">
-                                            <span>Jenis penukaran:</span>
-                                            <span class="fw-bold" id="summaryType">-</span>
-                                        </div>
-                                        <div class="d-flex justify-content-between">
-                                            <span>Sisa poin setelah tukar:</span>
-                                            <span class="fw-bold text-primary"
-                                                id="summaryRemainingPoints">{{ number_format($currentPoints) }}
-                                                poin</span>
+                                            <div class="col-sm-6">
+                                                <div class="d-flex justify-content-between">
+                                                    <span>Sisa poin setelah tukar:</span>
+                                                    <span class="fw-bold text-primary"
+                                                        id="summaryRemainingPoints">{{ number_format($currentPoints) }}
+                                                        poin</span>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -191,7 +173,7 @@
                                     Ajukan Penukaran
                                 </button>
                                 <small class="text-muted text-center">
-                                    Setelah mengajukan, admin akan memproses permintaan penukaran Anda.
+                                    Setelah mengajukan, tunjukkan bukti penukaran ke admin untuk diproses lebih lanjut.
                                 </small>
                             </div>
                         </form>
@@ -207,11 +189,12 @@
                         Informasi Penukaran Poin
                     </h6>
                     <ul class="mb-0 small text-muted">
-                        <li>Penukaran poin hanya tersedia dalam kelipatan: 20, 40, 60, 80, dan 100 poin</li>
-                        <li>Nilai tukar: 20 poin = Rp 1.000</li>
-                        <li>Untuk penukaran tunai, petugas akan mengantarkan ke alamat yang terdaftar</li>
-                        <li>Untuk donasi, nilai akan disumbangkan untuk program lingkungan</li>
+                        <li>Nilai tukar: 10 poin = Rp 1.000</li>
+                        <li>Minimum penukaran: 10 poin</li>
+                        <li>Penukaran harus dalam kelipatan 10 poin</li>
+                        <li>Petugas akan mengantarkan uang tunai ke alamat yang terdaftar</li>
                         <li>Proses penukaran memerlukan konfirmasi admin terlebih dahulu</li>
+                        <li>Tunjukkan bukti penukaran kepada admin saat melakukan transaksi</li>
                     </ul>
                 </div>
             </div>
@@ -222,19 +205,18 @@
         <script>
             document.addEventListener('DOMContentLoaded', function() {
                 const pointOptions = document.querySelectorAll('.point-option');
-                const redemptionTypeOptions = document.querySelectorAll('.redemption-type-option');
-                const redemptionTypeSection = document.getElementById('redemptionTypeSection');
+                const customPointsSection = document.getElementById('customPointsSection');
+                const customPointsInput = document.getElementById('customPointsInput');
+                const customCashValue = document.getElementById('customCashValue');
                 const summarySection = document.getElementById('summarySection');
                 const submitBtn = document.getElementById('submitBtn');
 
                 const summaryPoints = document.getElementById('summaryPoints');
                 const summaryCashValue = document.getElementById('summaryCashValue');
-                const summaryType = document.getElementById('summaryType');
                 const summaryRemainingPoints = document.getElementById('summaryRemainingPoints');
 
                 const currentPoints = {{ $currentPoints }};
                 let selectedPoints = 0;
-                let selectedType = '';
 
                 // Handle point selection
                 pointOptions.forEach(option => {
@@ -248,68 +230,55 @@
                     radioInput.addEventListener('change', updatePointSelection);
                 });
 
-                // Handle redemption type selection
-                redemptionTypeOptions.forEach(option => {
-                    const radioInput = option.querySelector('input[type="radio"]');
+                // Handle custom points input
+                customPointsInput.addEventListener('input', function() {
+                    const value = parseInt(this.value) || 0;
+                    const cashValue = Math.floor(value / 10) * 1000;
 
-                    option.addEventListener('click', function() {
-                        radioInput.checked = true;
-                        updateTypeSelection();
-                    });
+                    customCashValue.textContent = 'Rp ' + cashValue.toLocaleString('id-ID');
 
-                    radioInput.addEventListener('change', updateTypeSelection);
+                    if (document.getElementById('points_custom').checked) {
+                        selectedPoints = value;
+                        updateSummary();
+                    }
                 });
 
                 function updatePointSelection() {
                     const selectedRadio = document.querySelector('input[name="points_to_redeem"]:checked');
 
                     if (selectedRadio) {
-                        selectedPoints = parseInt(selectedRadio.value);
+                        const value = selectedRadio.value;
 
                         // Update visual selection
                         pointOptions.forEach(opt => opt.classList.remove('border-primary'));
                         selectedRadio.closest('.point-option').classList.add('border-primary');
 
-                        // Show redemption type section
-                        redemptionTypeSection.classList.remove('d-none');
-
-                        updateSummary();
-                    }
-                }
-
-                function updateTypeSelection() {
-                    const selectedRadio = document.querySelector('input[name="redemption_type"]:checked');
-
-                    if (selectedRadio) {
-                        selectedType = selectedRadio.value;
-
-                        // Update visual selection
-                        redemptionTypeOptions.forEach(opt => opt.classList.remove('border-primary'));
-                        selectedRadio.closest('.redemption-type-option').classList.add('border-primary');
-
-                        // Show summary section
-                        summarySection.classList.remove('d-none');
+                        if (value === 'custom') {
+                            customPointsSection.classList.remove('d-none');
+                            selectedPoints = parseInt(customPointsInput.value) || 0;
+                        } else {
+                            customPointsSection.classList.add('d-none');
+                            selectedPoints = parseInt(value);
+                        }
 
                         updateSummary();
                     }
                 }
 
                 function updateSummary() {
-                    if (selectedPoints > 0) {
-                        const cashValue = (selectedPoints / 20) * 1000;
+                    if (selectedPoints >= 10) {
+                        const cashValue = Math.floor(selectedPoints / 10) * 1000;
                         const remainingPoints = currentPoints - selectedPoints;
 
                         summaryPoints.textContent = selectedPoints + ' poin';
                         summaryCashValue.textContent = 'Rp ' + cashValue.toLocaleString('id-ID');
                         summaryRemainingPoints.textContent = remainingPoints.toLocaleString('id-ID') + ' poin';
 
-                        if (selectedType) {
-                            summaryType.textContent = selectedType === 'cash' ? 'Uang Tunai' : 'Donasi';
-                            submitBtn.disabled = false;
-                        } else {
-                            summaryType.textContent = '-';
-                            submitBtn.disabled = true;
-                        }
+                        summarySection.classList.remove('d-none');
+                        submitBtn.disabled = false;
+                    } else {
+                        summarySection.classList.add('d-none');
+                        submitBtn.disabled = true;
                     }
                 }
 
@@ -317,22 +286,29 @@
                 document.getElementById('redemptionForm').addEventListener('submit', function(e) {
                     const selectedPointsRadio = document.querySelector(
                     'input[name="points_to_redeem"]:checked');
-                    const selectedTypeRadio = document.querySelector('input[name="redemption_type"]:checked');
 
-                    if (!selectedPointsRadio || !selectedTypeRadio) {
+                    if (!selectedPointsRadio) {
                         e.preventDefault();
-                        alert('Silakan lengkapi pilihan Anda.');
+                        alert('Silakan pilih jumlah poin yang akan ditukar.');
                         return;
                     }
 
-                    const points = parseInt(selectedPointsRadio.value);
-                    const type = selectedTypeRadio.value;
-                    const cashValue = (points / 20) * 1000;
+                    let points = 0;
+                    if (selectedPointsRadio.value === 'custom') {
+                        points = parseInt(customPointsInput.value) || 0;
+                        if (points < 10 || points > currentPoints || points % 10 !== 0) {
+                            e.preventDefault();
+                            alert('Jumlah poin harus minimal 10, maksimal ' + currentPoints +
+                                ', dan kelipatan 10.');
+                            return;
+                        }
+                    } else {
+                        points = parseInt(selectedPointsRadio.value);
+                    }
 
-                    let confirmMessage = `Apakah Anda yakin ingin menukar ${points} poin `;
-                    confirmMessage += type === 'cash' ?
-                        `menjadi uang tunai Rp ${cashValue.toLocaleString('id-ID')}?` :
-                        `untuk donasi senilai Rp ${cashValue.toLocaleString('id-ID')}?`;
+                    const cashValue = Math.floor(points / 10) * 1000;
+                    const confirmMessage =
+                        `Apakah Anda yakin ingin menukar ${points} poin menjadi uang tunai Rp ${cashValue.toLocaleString('id-ID')}?`;
 
                     if (!confirm(confirmMessage)) {
                         e.preventDefault();
@@ -344,27 +320,24 @@
 
     @push('styles')
         <style>
-            .point-option,
-            .redemption-type-option {
+            .point-option {
                 cursor: pointer;
                 transition: all 0.3s ease;
                 border: 2px solid transparent;
             }
 
-            .point-option:hover,
-            .redemption-type-option:hover {
+            .point-option:hover {
                 transform: translateY(-2px);
                 box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
             }
 
-            .point-option.border-primary,
-            .redemption-type-option.border-primary {
-                border-color: var(--primary-color) !important;
+            .point-option.border-primary {
+                border-color: var(--bs-primary) !important;
             }
 
             .form-check-input:checked {
-                background-color: var(--primary-color);
-                border-color: var(--primary-color);
+                background-color: var(--bs-primary);
+                border-color: var(--bs-primary);
             }
 
             @media (max-width: 768px) {

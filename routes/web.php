@@ -146,9 +146,14 @@ Route::middleware('auth')->group(function () {
             Route::get('/nabung', [UserController::class, 'nabung'])->name('nabung');
             Route::post('/nabung', [UserController::class, 'store'])->name('nabung.store');
             Route::post('/nabung/calculate', action: [UserController::class, 'calculatePoints'])->name('nabung.calculate');
-            Route::get('/riwayat-transaksi', [UserController::class, 'riwayat-transaksi'])->name('riwayat-transaksi');
+            Route::get('/riwayat-transaksi', [UserController::class, 'riwayatTransaksi'])->name('riwayat-transaksi');
             Route::get('/saldo-bank', [UserController::class, 'saldo-bank'])->name('saldo-bank');
+
             Route::get('/tukar-poin', [UserController::class, 'tukarPoin'])->name('tukar-poin');
+            Route::post('/tukar-poin', [UserController::class, 'storeTukarPoin'])->name('tukar-poin.store');
+            Route::get('/tukar-poin/{redemption}', [UserController::class, 'buktiTukarPoin'])->name('tukar-poin.bukti');
+            Route::get('/daftar-tukar-poin', [UserController::class, 'daftarTukarPoin'])->name('tukar-poin.daftar');
+            Route::delete('/tukar-poin/{redemption}/cancel', [UserController::class, 'cancelTukarPoin'])->name('tukar-poin.cancel');
 
             // Report Management
             Route::resource('reports', ReportController::class)->only(['index', 'create', 'store', 'show']);

@@ -240,7 +240,7 @@
             @endif
 
             <!-- Information Card -->
-            <div class="card mt-4 shadow-sm">
+            {{-- <div class="card mt-4 shadow-sm">
                 <div class="card-body">
                     <h6 class="card-title">
                         <i class="bi bi-info-circle text-info me-2"></i>
@@ -264,7 +264,7 @@
                         </div>
                     </div>
                 </div>
-            </div>
+            </div> --}}
         </div>
     </div>
 
