@@ -90,6 +90,10 @@ Route::middleware('auth')->group(function () {
                     Route::put('/{approval}', [ApprovalController::class, 'update'])->name('update');
                     Route::post('/approval/bulk-update', [ApprovalController::class, 'bulkUpdate'])->name('bulk-update');
 
+                    Route::get('/redemptions', [ApprovalController::class, 'showRedemptions'])->name('redemptions');
+                    Route::post('/redemptions/{id}/approve', [ApprovalController::class, 'approveRedemption'])->name('redemptions.approve');
+                    Route::post('/redemptions/{id}/reject', [ApprovalController::class, 'rejectRedemption'])->name('redemptions.reject');
+
                     Route::get('/collections', [ApprovalController::class, 'showCompletedCollections'])->name('collections');
                     Route::post('/collections/{collection}/create-point', [ApprovalController::class, 'createPointTransaction'])->name('collections.create-point');
                 });

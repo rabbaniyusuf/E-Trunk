@@ -629,9 +629,6 @@ class UserController extends Controller
                     'redemption_type' => 'cash',
                     'status' => PointRedemptions::STATUS_PENDING,
                 ]);
-
-                // Deduct points from user balance
-                $user->decrement('balance', $pointsToRedeem);
             });
 
             // Redirect dengan $redemption yang sekarang terdefinisi
@@ -703,16 +700,134 @@ class UserController extends Controller
         }
     }
 
-    public function riwayatTransaksi()
+    public function riwayatTransaksi(Request $request)
     {
-        $transactions = auth()
-            ->user()
+        $user = auth()->user();
+
+        // Get filter parameters
+        $statusFilter = $request->get('status');
+        $typeFilter = $request->get('type');
+
+        // Get point transactions
+        $pointTransactions = $user
             ->pointTransactions()
             ->with(['processedBy:id,name', 'collectionRequest'])
-            ->orderBy('created_at', 'desc')
-            ->paginate(10);
+            ->when($statusFilter, function ($query) use ($statusFilter) {
+                return $query->where('status', $statusFilter);
+            })
+            ->when($typeFilter === 'deposit', function ($query) {
+                return $query->where('transaction_type', 'deposit');
+            })
+            ->when($typeFilter === 'withdrawal', function ($query) {
+                return $query->where('transaction_type', 'withdrawal');
+            })
+            ->get()
+            ->map(function ($transaction) {
+                return (object) [
+                    'id' => $transaction->id,
+                    'type' => 'point_transaction',
+                    'transaction_type' => $transaction->transaction_type,
+                    'points' => $transaction->points,
+                    'description' => $transaction->description,
+                    'status' => $transaction->status,
+                    'percentage_deposited' => $transaction->percentage_deposited,
+                    'created_at' => $transaction->created_at,
+                    'processed_at' => $transaction->processed_at,
+                    'processed_by' => $transaction->processedBy,
+                    'status_badge_class' => $transaction->getStatusBadgeClass(),
+                    'status_label' => $transaction->getStatusLabel(),
+                    'original' => $transaction,
+                ];
+            });
 
-        return view('user.riwayat-transaksi.index', compact('transactions'));
+        // Get point redemptions
+        $pointRedemptions = $user
+            ->pointRedemptions()
+            ->with(['processedBy:id,name'])
+            ->when($statusFilter, function ($query) use ($statusFilter) {
+                // Map redemption statuses to transaction-like statuses
+                $statusMap = [
+                    'MENUNGGU_KONFIRMASI' => 'pending',
+                    'DIKONFIRMASI' => 'approved',
+                    'DITOLAK' => 'cancelled',
+                    'SELESAI' => 'completed',
+                ];
+
+                $redemptionStatus = array_search($statusFilter, $statusMap);
+                if ($redemptionStatus !== false) {
+                    return $query->where('status', $redemptionStatus);
+                }
+            })
+            ->when($typeFilter === 'redemption', function ($query) {
+                return $query; // All redemptions are redemption type
+            })
+            ->when($typeFilter === 'deposit', function ($query) {
+                return $query->whereRaw('1 = 0'); // Exclude all redemptions
+            })
+            ->get()
+            ->map(function ($redemption) {
+                // Map redemption status to transaction-like status
+                $statusMap = [
+                    'pending' => 'MENUNGGU_KONFIRMASI',
+                    'approved' => 'DIKONFIRMASI',
+                    'cancelled' => 'DITOLAK',
+                    'completed' => 'SELESAI',
+                ];
+
+                $statusBadgeMap = [
+                    'pending' => 'bg-warning',
+                    'approved' => 'bg-info',
+                    'cancelled' => 'bg-danger',
+                    'completed' => 'bg-success',
+                ];
+
+                $statusLabelMap = [
+                    'pending' => 'Menunggu Konfirmasi',
+                    'approved' => 'Dikonfirmasi',
+                    'cancelled' => 'Ditolak',
+                    'completed' => 'Selesai',
+                ];
+
+                return (object) [
+                    'id' => $redemption->id,
+                    'type' => 'point_redemption',
+                    'transaction_type' => 'redemption',
+                    'points' => $redemption->points_redeemed,
+                    'cash_value' => $redemption->cash_value,
+                    'description' => "Penukaran {$redemption->points_redeemed} poin menjadi Rp " . number_format($redemption->cash_value, 0, ',', '.'),
+                    'status' => $statusMap[$redemption->status] ?? $redemption->status,
+                    'redemption_code' => $redemption->redemption_code,
+                    'created_at' => $redemption->created_at,
+                    'processed_at' => $redemption->processed_at,
+                    'completed_at' => $redemption->completed_at,
+                    'processed_by' => $redemption->processedBy,
+                    'status_badge_class' => $statusBadgeMap[$redemption->status] ?? 'bg-secondary',
+                    'status_label' => $statusLabelMap[$redemption->status] ?? 'Unknown',
+                    'original' => $redemption,
+                ];
+            });
+
+        // Combine and sort by created_at
+        $allTransactions = $pointTransactions->merge($pointRedemptions)->sortByDesc('created_at')->values();
+        // dd($allTransactions);
+
+        // Manual pagination
+        $perPage = 10;
+        $currentPage = $request->get('page', 1);
+        $currentItems = $allTransactions->slice(($currentPage - 1) * $perPage, $perPage)->values();
+
+        $transactions = new \Illuminate\Pagination\LengthAwarePaginator($currentItems, $allTransactions->count(), $perPage, $currentPage, ['path' => $request->url(), 'query' => $request->query()]);
+
+        // Calculate statistics
+        $stats = [
+            'total_deposits' => $pointTransactions->where('transaction_type', 'deposit')->sum('points'),
+            'total_withdrawals' => $pointTransactions->where('transaction_type', 'withdrawal')->sum('points'),
+            'total_redemptions' => $pointRedemptions->sum('points'),
+            'total_transactions' => $allTransactions->count(),
+            'current_balance' => $user->balance,
+        ];
+
+        return view('user.riwayat-transaksi.index', compact('transactions', 'stats'));
     }
 
     // public function calculatePoints(Request $request)

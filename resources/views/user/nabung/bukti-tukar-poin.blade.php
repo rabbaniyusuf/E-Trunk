@@ -70,7 +70,7 @@
 
                     <div class="mb-3">
                         <label class="text-muted small">Alamat Pengambilan</label>
-                        <div class="fw-bold">{{ $redemption->user->address }}, {{ $redemption->user->district }}</div>
+                        <div class="fw-bold">Jl. Teluk Cendrawasih No. 20</div>
                     </div>
 
                     @if($redemption->notes)

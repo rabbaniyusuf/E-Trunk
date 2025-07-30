@@ -387,74 +387,6 @@
             </div>
         </div>
 
-        <!-- Quick Statistics -->
-        <div class="row mb-4">
-            <div class="col-12">
-                <div class="quick-stats card-animate">
-                    <h5 class="mb-3">
-                        <i class="bi bi-graph-up me-2"></i>Statistik Hari Ini
-                    </h5>
-                    <div class="row">
-                        <div class="col-6 col-md-3">
-                            <div class="quick-stat-item">
-                                <div class="quick-stat-number text-primary">150</div>
-                                <div class="quick-stat-label">Total User</div>
-                            </div>
-                        </div>
-                        <div class="col-6 col-md-3">
-                            <div class="quick-stat-item">
-                                <div class="quick-stat-number text-success">45</div>
-                                <div class="quick-stat-label">Transaksi</div>
-                            </div>
-                        </div>
-                        <div class="col-6 col-md-3">
-                            <div class="quick-stat-item">
-                                <div class="quick-stat-number text-warning">1.2kg</div>
-                                <div class="quick-stat-label">Sampah Hari Ini</div>
-                            </div>
-                        </div>
-                        <div class="col-6 col-md-3">
-                            <div class="quick-stat-item">
-                                <div class="quick-stat-number text-info">8</div>
-                                <div class="quick-stat-label">Petugas Aktif</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Main Statistics Cards -->
-        <div class="row mb-4">
-            <div class="col-md-4 mb-3">
-                <div class="stat-card card-animate">
-                    <div class="stat-icon balance">
-                        <i class="bi bi-wallet2"></i>
-                    </div>
-                    <div class="stat-number">Rp 2.500.000</div>
-                    <div class="stat-label">Total Saldo Sistem</div>
-                </div>
-            </div>
-            <div class="col-md-4 mb-3">
-                <div class="stat-card card-animate">
-                    <div class="stat-icon recycle">
-                        <i class="bi bi-recycle"></i>
-                    </div>
-                    <div class="stat-number">1,247 kg</div>
-                    <div class="stat-label">Sampah Daur Ulang</div>
-                </div>
-            </div>
-            <div class="col-md-4 mb-3">
-                <div class="stat-card card-animate">
-                    <div class="stat-icon non-recycle">
-                        <i class="bi bi-trash"></i>
-                    </div>
-                    <div class="stat-number">328 kg</div>
-                    <div class="stat-label">Sampah Non-Daur Ulang</div>
-                </div>
-            </div>
-        </div>
-
         <!-- Action Buttons -->
         <div class="row mb-4">
             <div class="col-12">
@@ -477,9 +409,9 @@
                                 </a>
                             </div>
                             <div class="col-md-3">
-                                <a href="#" class="action-btn btn-success-custom">
+                                <a href="{{ route('admin.approvals.redemptions') }}" class="action-btn btn-success-custom">
                                     <i class="bi bi-calendar-plus"></i>
-                                    <span>Buat Jadwal Petugas</span>
+                                    <span>Penukaran Saldo</span>
                                 </a>
                             </div>
                             <div class="col-md-3">
