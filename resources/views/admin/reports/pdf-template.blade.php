@@ -466,7 +466,6 @@
                             <span
                                 class="status-badge
                         @if ($redemption->status === 'pending') status-pending
-                        @elseif($redemption->status === 'approved') status-approved
                         @elseif($redemption->status === 'completed') status-completed
                         @else status-rejected @endif">
                                 {{ $redemption->status_text }}

@@ -34,7 +34,6 @@ class PointRedemptions extends Model
 
     // Status constants
     const STATUS_PENDING = 'pending';
-    const STATUS_APPROVED = 'approved';
     const STATUS_COMPLETED = 'completed';
     const STATUS_CANCELLED = 'cancelled';
 
@@ -65,11 +64,6 @@ class PointRedemptions extends Model
         return $query->where('status', self::STATUS_PENDING);
     }
 
-    public function scopeApproved($query)
-    {
-        return $query->where('status', self::STATUS_APPROVED);
-    }
-
     public function scopeCompleted($query)
     {
         return $query->where('status', self::STATUS_COMPLETED);
@@ -96,7 +90,6 @@ class PointRedemptions extends Model
     {
         $badges = [
             self::STATUS_PENDING => 'bg-warning',
-            self::STATUS_APPROVED => 'bg-info',
             self::STATUS_COMPLETED => 'bg-success',
             self::STATUS_CANCELLED => 'bg-danger',
         ];
@@ -108,7 +101,6 @@ class PointRedemptions extends Model
     {
         $texts = [
             self::STATUS_PENDING => 'Menunggu Penukaran',
-            self::STATUS_APPROVED => 'Disetujui - Siap Diambil',
             self::STATUS_COMPLETED => 'Selesai',
             self::STATUS_CANCELLED => 'Dibatalkan',
         ];

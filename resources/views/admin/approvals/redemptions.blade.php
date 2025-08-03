@@ -384,15 +384,6 @@
                 </div>
             </div>
             <div class="col-6 col-md-3 mb-3">
-                <div class="card stats-card approved h-100">
-                    <div class="card-body text-center position-relative">
-                        <i class="bi bi-check-circle fs-1 mb-3 opacity-75"></i>
-                        <h2 class="mb-2 fw-bold">{{ $stats['approved'] }}</h2>
-                        <p class="mb-0 opacity-90">Disetujui</p>
-                    </div>
-                </div>
-            </div>
-            <div class="col-6 col-md-3 mb-3">
                 <div class="card stats-card completed h-100">
                     <div class="card-body text-center position-relative">
                         <i class="bi bi-check-all fs-1 mb-3 opacity-75"></i>

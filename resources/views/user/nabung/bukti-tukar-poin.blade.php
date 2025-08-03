@@ -48,13 +48,15 @@
                         <div class="col-sm-6">
                             <div class="mb-3">
                                 <label class="text-muted small">Poin Ditukar</label>
-                                <div class="fw-bold text-primary">{{ number_format($redemption->points_redeemed) }} poin</div>
+                                <div class="fw-bold text-primary">{{ number_format($redemption->points_redeemed) }} poin
+                                </div>
                             </div>
                         </div>
                         <div class="col-sm-6">
                             <div class="mb-3">
                                 <label class="text-muted small">Nilai Tukar</label>
-                                <div class="fw-bold text-success">Rp {{ number_format($redemption->cash_value, 0, ',', '.') }}</div>
+                                <div class="fw-bold text-success">Rp
+                                    {{ number_format($redemption->cash_value, 0, ',', '.') }}</div>
                             </div>
                         </div>
                     </div>
@@ -73,7 +75,7 @@
                         <div class="fw-bold">Jl. Teluk Cendrawasih No. 20</div>
                     </div>
 
-                    @if($redemption->notes)
+                    @if ($redemption->notes)
                         <div class="mb-3">
                             <label class="text-muted small">Catatan</label>
                             <div class="fw-bold">{{ $redemption->notes }}</div>
@@ -91,32 +93,15 @@
                             </div>
                         </div>
 
-                        <div class="d-flex align-items-center mb-2">
-                            <div class="bg-{{ $redemption->status === 'pending' ? 'light' : 'success' }} rounded-circle p-1 me-3"
-                                 style="width: 12px; height: 12px;"></div>
-                            <div class="flex-grow-1">
-                                <div class="fw-bold {{ $redemption->status === 'pending' ? 'text-muted' : '' }}">
-                                    Disetujui Admin
-                                </div>
-                                <small class="text-muted">
-                                    @if($redemption->processed_at)
-                                        {{ $redemption->processed_at->format('d/m/Y H:i') }}
-                                    @else
-                                        Menunggu penukaran
-                                    @endif
-                                </small>
-                            </div>
-                        </div>
-
                         <div class="d-flex align-items-center">
                             <div class="bg-{{ $redemption->status === 'completed' ? 'success' : 'light' }} rounded-circle p-1 me-3"
-                                 style="width: 12px; height: 12px;"></div>
+                                style="width: 12px; height: 12px;"></div>
                             <div class="flex-grow-1">
                                 <div class="fw-bold {{ $redemption->status !== 'completed' ? 'text-muted' : '' }}">
                                     Penukaran Selesai
                                 </div>
                                 <small class="text-muted">
-                                    @if($redemption->completed_at)
+                                    @if ($redemption->completed_at)
                                         {{ $redemption->completed_at->format('d/m/Y H:i') }}
                                     @else
                                         Belum selesai
@@ -162,28 +147,122 @@
     @push('scripts')
         <script>
             function printProof() {
-                // Hide navigation and other elements when printing
-                const printContent = document.getElementById('redemptionProof').outerHTML;
-                const originalContent = document.body.innerHTML;
+                const content = document.getElementById('redemptionProof').innerHTML;
 
-                document.body.innerHTML = `
-                    <div style="padding: 20px;">
-                        <h2 style="text-align: center; margin-bottom: 20px;">E-TRANK - Bukti Penukaran Poin</h2>
-                        ${printContent}
-                    </div>
-                `;
+                const printWindow = window.open('', '_blank', 'width=800,height=600');
+                printWindow.document.write(`
+            <html>
+            <head>
+                <title>Bukti Penukaran - E-TRANK</title>
+                <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+                <style>
+                    body {
+                        font-family: 'Segoe UI', sans-serif;
+                        background: #fff;
+                        padding: 30px;
+                    }
 
-                window.print();
-                document.body.innerHTML = originalContent;
-                location.reload(); // Reload to restore event listeners
+                    .brand-header {
+                        text-align: center;
+                        border-bottom: 2px dashed #333;
+                        margin-bottom: 30px;
+                        padding-bottom: 10px;
+                    }
+
+                    .brand-header h2 {
+                        margin: 0;
+                        font-size: 24px;
+                        color: #007bff;
+                    }
+
+                    .print-card {
+                        border: 2px solid #333;
+                        padding: 25px;
+                        border-radius: 8px;
+                    }
+
+                    .print-title {
+                        text-align: center;
+                        font-size: 18px;
+                        font-weight: bold;
+                        margin-bottom: 25px;
+                    }
+
+                    .row + .row {
+                        margin-top: 1rem;
+                    }
+
+                    .qr-placeholder {
+                        width: 100px;
+                        height: 100px;
+                        border: 1px dashed #ccc;
+                        display: inline-block;
+                        margin: auto;
+                        margin-bottom: 20px;
+                        line-height: 100px;
+                        text-align: center;
+                        color: #999;
+                        font-size: 12px;
+                    }
+
+                    .label {
+                        font-size: 13px;
+                        color: #888;
+                    }
+
+                    .value {
+                        font-weight: 600;
+                        font-size: 15px;
+                        color: #000;
+                    }
+
+                    .footer-note {
+                        font-size: 12px;
+                        margin-top: 30px;
+                        text-align: center;
+                        color: #555;
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="brand-header">
+                    <h2>E-TRANK</h2>
+                    <small>Bukti Penukaran Poin</small>
+                </div>
+
+                <div class="print-card">
+                    <div class="print-title">Informasi Penukaran</div>
+                    ${content}
+                </div>
+
+                <div class="footer-note">
+                    Simpan dan tunjukkan bukti ini saat melakukan penukaran. Terima kasih telah menggunakan E-TRANK.
+                </div>
+
+                <script>
+                    window.onload = function() {
+                        window.print();
+                        window.onafterprint = function () {
+                            window.close();
+                        };
+                    };
+                <\/script>
+            </body>
+            </html>
+        `);
+                printWindow.document.close();
             }
         </script>
     @endpush
 
+
     @push('styles')
         <style>
             @media print {
-                .btn, .alert, .card:last-child {
+
+                .btn,
+                .alert,
+                .card:last-child {
                     display: none !important;
                 }
 

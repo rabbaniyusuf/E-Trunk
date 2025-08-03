@@ -353,7 +353,6 @@ class ApprovalController extends Controller
         // Statistik untuk dashboard
         $stats = [
             'pending' => PointRedemptions::cash()->pending()->count(),
-            'approved' => PointRedemptions::cash()->approved()->count(),
             'completed' => PointRedemptions::cash()->completed()->count(),
             'total_cash_pending' => PointRedemptions::cash()->pending()->sum('cash_value'),
             'total_cash_today' => PointRedemptions::cash()->whereDate('created_at', today())->sum('cash_value'),
@@ -381,9 +380,10 @@ class ApprovalController extends Controller
             DB::transaction(function () use ($redemption, $request) {
                 // Update status redemption
                 $redemption->update([
-                    'status' => PointRedemptions::STATUS_APPROVED,
+                    'status' => PointRedemptions::STATUS_COMPLETED,
                     'processed_by' => auth()->id(),
                     'processed_at' => now(),
+                    'completed_at' => now(),
                     'notes' => $request->notes,
                 ]);
 

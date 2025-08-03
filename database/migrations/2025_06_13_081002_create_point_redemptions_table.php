@@ -17,7 +17,7 @@ return new class extends Migration {
             $table->integer('points_redeemed');
             $table->decimal('cash_value', 10, 2);
             $table->enum('redemption_type', ['cash'])->default('cash');
-            $table->enum('status', ['pending', 'approved', 'completed', 'cancelled'])->default('pending');
+            $table->enum('status', ['pending', 'completed', 'cancelled'])->default('pending');
             $table->text('notes')->nullable();
             $table->foreignId('processed_by')->nullable()->constrained('users')->onDelete('set null');
             $table->timestamp('processed_at')->nullable();
