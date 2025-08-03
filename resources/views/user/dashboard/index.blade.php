@@ -852,12 +852,6 @@
                                                         App\Models\WasteCollection::STATUS_PENDING,
                                                         App\Models\WasteCollection::STATUS_SCHEDULED,
                                                     ]))
-                                                <div class="mt-2">
-                                                    <button class="btn btn-outline-info btn-xs"
-                                                        onclick="viewCollectionDetails({{ $activity['data']->id }})">
-                                                        <i class="bi bi-eye"></i> Detail
-                                                    </button>
-                                                </div>
                                             @endif
                                         </div>
                                     </div>

@@ -100,6 +100,41 @@
             </div>
         </div>
 
+        <div class="filter-section">
+            <div class="filter-tabs">
+                <form method="GET" action="{{ route('petugas.dashboard') }}" id="filterForm">
+                    <input type="hidden" name="upcoming_filter" value="{{ $upcomingFilter }}">
+
+                    <div class="filter-group">
+                        <label class="filter-label">Filter Hari Ini:</label>
+                        <div class="filter-buttons">
+                            <button type="button" class="filter-btn {{ $todayFilter === 'all' ? 'active' : '' }}"
+                                onclick="updateFilter('today_filter', 'all')">
+                                <i class="bi bi-list-ul me-1"></i>
+                                Semua <span class="filter-count">({{ $filterCounts['today']['all'] }})</span>
+                            </button>
+                            <button type="button" class="filter-btn {{ $todayFilter === 'pending' ? 'active' : '' }}"
+                                onclick="updateFilter('today_filter', 'pending')">
+                                <i class="bi bi-clock-history me-1"></i>
+                                Belum Selesai <span class="filter-count">({{ $filterCounts['today']['pending'] }})</span>
+                            </button>
+                            <button type="button" class="filter-btn {{ $todayFilter === 'in_progress' ? 'active' : '' }}"
+                                onclick="updateFilter('today_filter', 'in_progress')">
+                                <i class="bi bi-arrow-repeat me-1"></i>
+                                Sedang Proses <span
+                                    class="filter-count">({{ $filterCounts['today']['in_progress'] }})</span>
+                            </button>
+                            <button type="button" class="filter-btn {{ $todayFilter === 'completed' ? 'active' : '' }}"
+                                onclick="updateFilter('today_filter', 'completed')">
+                                <i class="bi bi-check-circle me-1"></i>
+                                Selesai <span class="filter-count">({{ $filterCounts['today']['completed'] }})</span>
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
         <!-- Modern Today's Collections -->
         <div class="content-card mb-4">
             <div class="card-header-modern">
@@ -118,13 +153,28 @@
                 @if ($todayCollections->count() > 0)
                     <div class="schedule-list">
                         @foreach ($todayCollections as $index => $collection)
-                            <div class="schedule-item {{ $collection->status === 'completed' ? 'completed' : '' }}"
-                                data-collection-id="{{ $collection->id }}">
+                            @php
+                                $completedClass =
+                                    $collection->status === App\Models\WasteCollection::STATUS_COMPLETED
+                                        ? 'completed'
+                                        : '';
+                            @endphp
+
+                            <div class="schedule-item {{ $completedClass }}" data-collection-id="{{ $collection->id }}">
                                 <div class="schedule-time">
-                                    <div
-                                        class="time-badge {{ $collection->status === 'in_progress' ? 'time-badge-warning' : ($collection->status === 'completed' ? 'time-badge-success' : 'time-badge-primary') }}">
+                                    @php
+                                        $timeBadgeClass = match ($collection->status) {
+                                            App\Models\WasteCollection::STATUS_IN_PROGRESS => 'time-badge-warning',
+                                            App\Models\WasteCollection::STATUS_COMPLETED => 'time-badge-success',
+                                            App\Models\WasteCollection::STATUS_CANCELLED => 'time-badge-danger',
+                                            default => 'time-badge-primary',
+                                        };
+                                    @endphp
+
+                                    <div class="time-badge {{ $timeBadgeClass }}">
                                         {{ \Carbon\Carbon::parse($collection->pickup_time)->format('H:i') }}
                                     </div>
+
                                     <div class="schedule-index">#{{ str_pad($index + 1, 2, '0', STR_PAD_LEFT) }}</div>
                                 </div>
 
@@ -195,17 +245,21 @@
                                     </div>
 
                                     <div class="schedule-status">
-                                        @if ($collection->status === 'completed')
+                                        @if ($collection->status === App\Models\WasteCollection::STATUS_COMPLETED)
                                             <span class="status-badge status-completed">
                                                 <i class="bi bi-check-circle me-1"></i>Selesai
                                             </span>
-                                        @elseif($collection->status === 'in_progress')
+                                        @elseif($collection->status === App\Models\WasteCollection::STATUS_IN_PROGRESS)
                                             <span class="status-badge status-progress">
                                                 <i class="bi bi-clock me-1"></i>Sedang Proses
                                             </span>
-                                        @elseif($collection->status === 'cancelled')
+                                        @elseif($collection->status === App\Models\WasteCollection::STATUS_CANCELLED)
                                             <span class="status-badge status-cancelled">
                                                 <i class="bi bi-x-circle me-1"></i>Dibatalkan
+                                            </span>
+                                        @elseif($collection->status === App\Models\WasteCollection::STATUS_PENDING)
+                                            <span class="status-badge status-scheduled">
+                                                <i class="bi bi-calendar me-1"></i>Menunggu Jadwal
                                             </span>
                                         @else
                                             <span class="status-badge status-scheduled">
@@ -216,22 +270,26 @@
                                 </div>
 
                                 <div class="schedule-actions">
-                                    @if (in_array($collection->status, ['scheduled', 'in_progress']))
+                                    @if (in_array($collection->status, [
+                                            App\Models\WasteCollection::STATUS_SCHEDULED,
+                                            App\Models\WasteCollection::STATUS_IN_PROGRESS,
+                                        ]))
                                         <a class="btn btn-action btn-success"
                                             href="{{ route('petugas.tasks.show', $collection->id) }}"
                                             title="Proses Pengambilan">
                                             <i class="bi bi-check2"></i>
                                         </a>
+                                        <a class="btn btn-action btn-info"
+                                            href="{{ route('petugas.tasks.show', $collection->id) }}" title="Detail">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
                                     @endif
-                                    <a class="btn btn-action btn-info"
-                                        href="{{ route('petugas.tasks.show', $collection->id) }}" title="Detail">
-                                        <i class="bi bi-eye"></i>
-                                    </a>
                                     <a href="https://maps.google.com?q={{ urlencode($collection->user->address ?? '') }}"
                                         target="_blank" class="btn btn-action btn-warning" title="Maps">
                                         <i class="bi bi-geo-alt"></i>
                                     </a>
                                 </div>
+
                             </div>
                         @endforeach
                     </div>
@@ -1141,5 +1199,202 @@
                 justify-content: center;
             }
         }
+
+        .filter-section {
+            background: #f8fafc;
+            border-bottom: 1px solid #e2e8f0;
+            padding: 1.25rem 1.5rem;
+            margin: 0;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .filter-label {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #374151;
+            margin: 0;
+        }
+
+        .filter-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .filter-btn {
+            background: white;
+            border: 1px solid #d1d5db;
+            border-radius: 0.5rem;
+            padding: 0.5rem 0.875rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: #6b7280;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            text-decoration: none;
+            white-space: nowrap;
+        }
+
+        .filter-btn:hover {
+            background: #f9fafb;
+            border-color: #9ca3af;
+            color: #374151;
+            transform: translateY(-1px);
+        }
+
+        .filter-btn.active {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-color: #667eea;
+            color: white;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.25);
+        }
+
+        .filter-btn.active:hover {
+            background: linear-gradient(135deg, #5a67d8, #6b46c1);
+            transform: translateY(-1px);
+        }
+
+        .filter-count {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 0.375rem;
+            padding: 0.125rem 0.375rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-left: 0.375rem;
+        }
+
+        .filter-btn:not(.active) .filter-count {
+            background: #e5e7eb;
+            color: #6b7280;
+        }
+
+        /* Loading state */
+        .filter-loading {
+            opacity: 0.6;
+            pointer-events: none;
+        }
+
+        .filter-loading::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 16px;
+            height: 16px;
+            margin: -8px 0 0 -8px;
+            border: 2px solid #e5e7eb;
+            border-top-color: #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .filter-section {
+                padding: 1rem;
+            }
+
+            .filter-group {
+                gap: 0.5rem;
+            }
+
+            .filter-buttons {
+                gap: 0.375rem;
+            }
+
+            .filter-btn {
+                padding: 0.375rem 0.625rem;
+                font-size: 0.8rem;
+            }
+
+            .filter-count {
+                padding: 0.0625rem 0.25rem;
+                font-size: 0.7rem;
+                margin-left: 0.25rem;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .filter-btn {
+                flex: 1;
+                justify-content: center;
+                min-width: 0;
+            }
+
+            .filter-btn i {
+                display: none;
+            }
+        }
     </style>
+@endpush
+
+
+@push('scripts')
+    <script>
+        function updateFilter(filterType, filterValue) {
+            // Tampilkan loading state
+            const filterSection = document.querySelector('.filter-section');
+            filterSection.classList.add('filter-loading');
+
+            // Update active state pada button
+            const filterButtons = document.querySelectorAll('.filter-btn');
+            filterButtons.forEach(btn => {
+                btn.classList.remove('active');
+            });
+
+            event.target.classList.add('active');
+
+            // Buat URL dengan parameter filter
+            const currentUrl = new URL(window.location.href);
+            currentUrl.searchParams.set(filterType, filterValue);
+
+            // Preserve filter lainnya
+            if (filterType === 'today_filter') {
+                const upcomingFilter = document.querySelector('input[name="upcoming_filter"]').value;
+                currentUrl.searchParams.set('upcoming_filter', upcomingFilter);
+            } else {
+                const todayFilter = document.querySelector('input[name="today_filter"]').value;
+                currentUrl.searchParams.set('today_filter', todayFilter);
+            }
+
+            // Redirect ke URL dengan filter baru
+            window.location.href = currentUrl.toString();
+        }
+
+        // Auto-refresh setiap 30 detik jika ada filter aktif
+        document.addEventListener('DOMContentLoaded', function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const hasActiveFilter = urlParams.get('today_filter') !== 'all' ||
+                urlParams.get('upcoming_filter') !== 'all';
+
+            if (hasActiveFilter) {
+                setInterval(function() {
+                    // Refresh halaman dengan mempertahankan filter
+                    window.location.reload();
+                }, 30000); // 30 detik
+            }
+        });
+
+        // Handle form submission untuk kompatibilitas
+        document.getElementById('filterForm')?.addEventListener('submit', function(e) {
+            e.preventDefault();
+        });
+
+        document.getElementById('upcomingFilterForm')?.addEventListener('submit', function(e) {
+            e.preventDefault();
+        });
+    </script>
 @endpush

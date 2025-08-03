@@ -12,35 +12,84 @@ use Illuminate\Support\Facades\Auth;
 
 class PetugasController extends Controller
 {
-    public function dashboard()
+    public function dashboard(Request $request)
     {
         $petugasId = auth()->id();
 
-        // Get today's collections
-        $todayCollections = WasteCollection::where('assigned_to', $petugasId)
+        // Ambil filter dari request
+        $todayFilter = $request->get('today_filter', 'all'); // all, pending, completed
+        $upcomingFilter = $request->get('upcoming_filter', 'all'); // all, scheduled, pending
+
+        // Query dasar untuk pengambilan hari ini
+        $todayQuery = WasteCollection::where('assigned_to', $petugasId)
             ->whereDate('pickup_date', today())
-            ->with(['user', 'wasteBinType'])
-            ->orderBy('pickup_time')
-            ->get();
+            ->with(['user', 'wasteBinType']);
 
-        // Get upcoming collections (next 7 days)
-        $upcomingCollections = WasteCollection::where('assigned_to', $petugasId)
+        // Apply filter untuk hari ini
+        switch ($todayFilter) {
+            case 'pending':
+                $todayQuery->whereIn('status', [WasteCollection::STATUS_PENDING, WasteCollection::STATUS_SCHEDULED, WasteCollection::STATUS_IN_PROGRESS]);
+                break;
+            case 'completed':
+                $todayQuery->where('status', WasteCollection::STATUS_COMPLETED);
+                break;
+            case 'in_progress':
+                $todayQuery->where('status', WasteCollection::STATUS_IN_PROGRESS);
+                break;
+            // 'all' tidak perlu filter tambahan
+        }
+
+        $todayCollections = $todayQuery->orderBy('pickup_time')->get();
+
+        // Query dasar untuk pengambilan mendatang
+        $upcomingQuery = WasteCollection::where('assigned_to', $petugasId)
             ->whereBetween('pickup_date', [today()->addDay(), today()->addDays(7)])
-            ->with(['user', 'wasteBinType'])
-            ->orderBy('pickup_date')
-            ->orderBy('pickup_time')
+            ->with(['user', 'wasteBinType']);
+
+        // Apply filter untuk mendatang
+        switch ($upcomingFilter) {
+            case 'scheduled':
+                $upcomingQuery->where('status', WasteCollection::STATUS_SCHEDULED);
+                break;
+            case 'pending':
+                $upcomingQuery->where('status', WasteCollection::STATUS_PENDING);
+                break;
+            // 'all' tidak perlu filter tambahan
+        }
+
+        $upcomingCollections = $upcomingQuery->orderBy('pickup_date')->orderBy('pickup_time')->get();
+
+        // Statistics - hitung dari semua data tanpa filter
+        $allTodayCollections = WasteCollection::where('assigned_to', $petugasId)->whereDate('pickup_date', today())->get();
+
+        $allUpcomingCollections = WasteCollection::where('assigned_to', $petugasId)
+            ->whereBetween('pickup_date', [today()->addDay(), today()->addDays(7)])
             ->get();
 
-        // Statistics
         $stats = [
-            'today_total' => $todayCollections->count(),
-            'today_completed' => $todayCollections->where('status', WasteCollection::STATUS_COMPLETED)->count(),
-            'today_pending' => $todayCollections->whereIn('status', [WasteCollection::STATUS_SCHEDULED, WasteCollection::STATUS_IN_PROGRESS])->count(),
-            'upcoming_total' => $upcomingCollections->count(),
-            'high_priority' => $todayCollections->where('status', WasteCollection::STATUS_IN_PROGRESS)->count(),
+            'today_total' => $allTodayCollections->count(),
+            'today_completed' => $allTodayCollections->where('status', WasteCollection::STATUS_COMPLETED)->count(),
+            'today_pending' => $allTodayCollections->whereIn('status', [WasteCollection::STATUS_PENDING, WasteCollection::STATUS_SCHEDULED])->count(),
+            'upcoming_total' => $allUpcomingCollections->count(),
+            'high_priority' => $allTodayCollections->where('status', WasteCollection::STATUS_IN_PROGRESS)->count(),
         ];
 
-        return view('petugas.dashboard.index', compact('todayCollections', 'upcomingCollections', 'stats'));
+        // Data untuk filter counts
+        $filterCounts = [
+            'today' => [
+                'all' => $allTodayCollections->count(),
+                'pending' => $allTodayCollections->whereIn('status', [WasteCollection::STATUS_PENDING, WasteCollection::STATUS_SCHEDULED, WasteCollection::STATUS_IN_PROGRESS])->count(),
+                'completed' => $allTodayCollections->where('status', WasteCollection::STATUS_COMPLETED)->count(),
+                'in_progress' => $allTodayCollections->where('status', WasteCollection::STATUS_IN_PROGRESS)->count(),
+            ],
+            'upcoming' => [
+                'all' => $allUpcomingCollections->count(),
+                'scheduled' => $allUpcomingCollections->where('status', WasteCollection::STATUS_SCHEDULED)->count(),
+                'pending' => $allUpcomingCollections->where('status', WasteCollection::STATUS_PENDING)->count(),
+            ],
+        ];
+
+        return view('petugas.dashboard.index', compact('todayCollections', 'upcomingCollections', 'stats', 'filterCounts', 'todayFilter', 'upcomingFilter'));
     }
 
     public function showTask($id)
@@ -109,6 +158,7 @@ class PetugasController extends Controller
             $poinPlastik = $beratPlastik * 10; // 10 poin per kg
             $poinKardus = $beratKardus * 12; // 12 poin per kg
             $totalPoin = $poinKertas + $poinPlastik + $poinKardus;
+            $totalBerat = $beratKertas + $beratPlastik + $beratKardus;
 
             // Buat point transactions untuk setiap jenis sampah yang diambil dengan status PENDING
             if ($beratKertas > 0) {
@@ -153,9 +203,12 @@ class PetugasController extends Controller
                 ]);
             }
 
-            // Update status waste collection menjadi COMPLETED
+            // Update waste collection dengan data terbaru
             $wasteCollection->update([
-                'status' => WasteCollection::STATUS_COMPLETED, // Ubah ke COMPLETED
+                'status' => WasteCollection::STATUS_COMPLETED,
+                'actual_weight_kg' => $totalBerat, // Gunakan kolom yang tepat
+                'points_earned' => $totalPoin, // Simpan total poin
+                'points_status' => 'pending', // Status pending untuk approval
                 'notes' => $request->catatan,
                 'processed_by' => Auth::id(),
                 'processed_at' => now(),
@@ -165,7 +218,7 @@ class PetugasController extends Controller
             // Kirim notifikasi ke admin untuk approval
             $this->sendAdminNotification($wasteCollection, $totalPoin, $beratKertas, $beratPlastik, $beratKardus);
 
-            // Kirim notifikasi ke user bahwa sampaah sudah diambil
+            // Kirim notifikasi ke user bahwa sampah sudah diambil
             $this->sendUserNotification($wasteCollection, $totalPoin);
 
             DB::commit();
@@ -187,18 +240,16 @@ class PetugasController extends Controller
 
         $details = [];
         if ($beratKertas > 0) {
-            $details[] = "Kertas: {$beratKertas} kg (" . ($beratKertas * 15) . ' poin)';
+            $details[] = "Kertas: {$beratKertas} kg (" . $beratKertas * 15 . ' poin)';
         }
         if ($beratPlastik > 0) {
-            $details[] = "Plastik: {$beratPlastik} kg (" . ($beratPlastik * 10) . ' poin)';
+            $details[] = "Plastik: {$beratPlastik} kg (" . $beratPlastik * 10 . ' poin)';
         }
         if ($beratKardus > 0) {
-            $details[] = "Kardus: {$beratKardus} kg (" . ($beratKardus * 12) . ' poin)';
+            $details[] = "Kardus: {$beratKardus} kg (" . $beratKardus * 12 . ' poin)';
         }
 
-        $message = 'Pengambilan sampah telah diselesaikan oleh ' . Auth::user()->name . ' untuk user ' . $wasteCollection->user->name . '. ' .
-                   'Detail: ' . implode(', ', $details) . '. ' .
-                   "Total poin: {$totalPoin} poin. Memerlukan approval.";
+        $message = 'Pengambilan sampah telah diselesaikan oleh ' . Auth::user()->name . ' untuk user ' . $wasteCollection->user->name . '. ' . 'Detail: ' . implode(', ', $details) . '. ' . "Total poin: {$totalPoin} poin. Memerlukan approval.";
 
         foreach ($admins as $admin) {
             Notification::create([
@@ -214,7 +265,7 @@ class PetugasController extends Controller
                     'berat_plastik' => $beratPlastik,
                     'berat_kardus' => $beratKardus,
                     'processed_by' => Auth::id(),
-                    'action_needed' => 'approve_points'
+                    'action_needed' => 'approve_points',
                 ],
                 'notifiable_type' => 'App\Models\WasteCollection',
                 'notifiable_id' => $wasteCollection->id,
@@ -228,8 +279,7 @@ class PetugasController extends Controller
             'user_id' => $wasteCollection->user_id,
             'type' => Notification::TYPE_COLLECTION_REQUEST,
             'title' => 'Sampah Berhasil Diambil',
-            'message' => 'Sampah Anda telah berhasil diambil oleh petugas. ' .
-                        "Total {$totalPoin} poin sedang menunggu approval admin.",
+            'message' => 'Sampah Anda telah berhasil diambil oleh petugas. ' . "Total {$totalPoin} poin sedang menunggu approval admin.",
             'data' => [
                 'waste_collection_id' => $wasteCollection->id,
                 'total_points' => $totalPoin,

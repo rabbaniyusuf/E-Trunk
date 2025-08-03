@@ -185,10 +185,10 @@
                                         @endif
                                     </h6>
                                 </li>
-                                <li><hr class="dropdown-divider"></li>
+                                {{-- <li><hr class="dropdown-divider"></li> --}}
 
                                 {{-- Role-based menu items --}}
-                                @role('masyarakat')
+                                {{-- @role('masyarakat')
                                     <li>
                                         <a class="dropdown-item" href="#">
                                             <i class="bi bi-bank"></i> Info Rekening
@@ -210,9 +210,9 @@
                                             <i class="bi bi-calendar-check"></i> Jadwal Saya
                                         </a>
                                     </li>
-                                @endrole
+                                @endrole --}}
 
-                                <li><hr class="dropdown-divider"></li>
+                                {{-- <li><hr class="dropdown-divider"></li> --}}
                                 <li>
                                     <form action="{{ route('logout') }}" method="POST" class="d-inline">
                                         @csrf
