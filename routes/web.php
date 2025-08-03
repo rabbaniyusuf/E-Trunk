@@ -103,11 +103,38 @@ Route::middleware('auth')->group(function () {
             Route::get('/users/{user}/toggle-status', [AdminController::class, 'toggleStatus'])->name('users.toggle-status');
 
             // Report Management
-            Route::get('/reports', [AdminController::class, 'reports'])->name('reports.index');
-            Route::get('/reports/{report}', [AdminController::class, 'showReport'])->name('reports.show');
-            Route::put('/reports/{report}/approve', [AdminController::class, 'approveReport'])->name('reports.approve');
-            Route::put('/reports/{report}/reject', [AdminController::class, 'rejectReport'])->name('reports.reject');
-            Route::put('/reports/{report}/assign', [AdminController::class, 'assignReport'])->name('reports.assign');
+            Route::get('/reports', [AdminController::class, 'reportsIndex'])->name('reports.index');
+
+            // Generate and download report
+            Route::get('/reports/generate', [AdminController::class, 'reports'])->name('reports');
+
+            // Additional helpful routes
+            Route::get('/reports/preview', [AdminController::class, 'reports'])->name('reports.preview');
+
+            // Quick report endpoints for common use cases
+            Route::get('/reports/today', function () {
+                return redirect()->route('admin.reports', [
+                    'report_type' => 'combined',
+                    'start_date' => date('Y-m-d'),
+                    'end_date' => date('Y-m-d'),
+                ]);
+            })->name('reports.today');
+
+            Route::get('/reports/this-week', function () {
+                return redirect()->route('admin.reports', [
+                    'report_type' => 'combined',
+                    'start_date' => date('Y-m-d', strtotime('monday this week')),
+                    'end_date' => date('Y-m-d'),
+                ]);
+            })->name('reports.week');
+
+            Route::get('/reports/this-month', function () {
+                return redirect()->route('admin.reports', [
+                    'report_type' => 'combined',
+                    'start_date' => date('Y-m-01'),
+                    'end_date' => date('Y-m-d'),
+                ]);
+            })->name('reports.month');
 
             // Statistics & Analytics
             Route::get('/statistics', [AdminController::class, 'statistics'])->name('statistics');

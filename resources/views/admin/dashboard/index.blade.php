@@ -415,7 +415,7 @@
                                 </a>
                             </div>
                             <div class="col-md-3">
-                                <a href="#" class="action-btn btn-warning-custom">
+                                <a href="{{ route('admin.reports.index') }}" class="action-btn btn-warning-custom">
                                     <i class="bi bi-file-earmark-text"></i>
                                     <span>Cetak Report</span>
                                 </a>

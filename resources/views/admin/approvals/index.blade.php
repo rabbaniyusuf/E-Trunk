@@ -10,11 +10,11 @@
                 <h1 class="h3 mb-1">Approval Penukaran Poin</h1>
                 <p class="text-muted mb-0">Kelola permintaan penukaran poin dari masyarakat</p>
             </div>
-            <div>
+            {{-- <div>
                 <a href="{{ route('admin.approvals.collections') }}" class="btn btn-outline-primary">
                     <i class="bi bi-collection"></i> Lihat Collection Selesai
                 </a>
-            </div>
+            </div> --}}
         </div>
 
         <!-- Statistics Cards -->
