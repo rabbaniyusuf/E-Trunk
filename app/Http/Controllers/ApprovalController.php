@@ -409,7 +409,6 @@ class ApprovalController extends Controller
                 'message' => 'Penukaran berhasil disetujui dan saldo telah ditambahkan',
             ]);
         } catch (\Exception $e) {
-            dd($e->getMessage());
             return response()->json(
                 [
                     'success' => false,

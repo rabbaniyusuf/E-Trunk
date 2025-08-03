@@ -58,8 +58,9 @@
         <div class="monitoring-volume-sampah">
             <h3>Monitoring Volume Sampah</h3>
             <p>
-                Bank Sampah adalah tempat untuk menabung sampah yang telah dipilah. Masyarakat dapat menyetor sampah dan
-                memperoleh poin atau insentif sebagai bentuk kontribusi terhadap lingkungan.
+                Monitoring volume sampah adalah proses pemantauan secara otomatis terhadap tingkat kepenuhan tempat
+                sampah dengan menggunakan sensor. Monitoring ini dirancang untuk mendeteksi seberapa penuh tempat sampah
+                mulai dari masih kosong, setengah penuh, hingga sudah harus segera dikosongkan.
             </p>
         </div>
     </section>

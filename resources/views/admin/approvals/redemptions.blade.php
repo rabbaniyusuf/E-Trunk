@@ -594,10 +594,6 @@
                         <i class="bi bi-cash-coin text-success" style="font-size: 3rem;"></i>
                     </div>
                     <p class="text-center mb-4">Apakah Anda yakin ingin menyetujui penukaran saldo ini?</p>
-                    <div class="alert alert-info">
-                        <i class="bi bi-info-circle me-2"></i>
-                        <strong>Saldo akan langsung ditambahkan ke akun user setelah approval.</strong>
-                    </div>
                     <div class="mt-3">
                         <label class="form-label fw-semibold">Catatan (Opsional)</label>
                         <textarea class="form-control" id="approvalNotes" rows="3" placeholder="Tambahkan catatan jika diperlukan..."></textarea>
