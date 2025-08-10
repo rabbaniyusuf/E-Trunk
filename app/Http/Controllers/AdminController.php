@@ -103,7 +103,9 @@ class AdminController extends Controller
         }
     }
 
-    public function toggleStatus() {}
+    public function toggleStatus()
+    {
+    }
 
     public function reports(Request $request)
     {
@@ -235,9 +237,9 @@ class AdminController extends Controller
             'company_info' => [
                 'name' => 'E-TRANK System',
                 'subtitle' => 'Sistem Monitoring Sampah Digital',
-                'address' => 'Bandung, Jawa Barat, Indonesia',
+                'address' => 'Malang, Jawa Timur, Indonesia',
                 'phone' => '(022) 1234-5678',
-                'email' => 'admin@etrank.system',
+                'email' => 'admin@wastemonitor.com',
             ],
         ]);
 
@@ -271,17 +273,31 @@ class AdminController extends Controller
         return view('admin.reports.index', compact('users'));
     }
 
-    public function showReport() {}
+    public function showReport()
+    {
+    }
 
-    public function approveReport() {}
+    public function approveReport()
+    {
+    }
 
-    public function rejectReport() {}
+    public function rejectReport()
+    {
+    }
 
-    public function statistics() {}
+    public function statistics()
+    {
+    }
 
-    public function assignReport() {}
+    public function assignReport()
+    {
+    }
 
-    public function exportReports() {}
+    public function exportReports()
+    {
+    }
 
-    public function exportUsers() {}
+    public function exportUsers()
+    {
+    }
 }
