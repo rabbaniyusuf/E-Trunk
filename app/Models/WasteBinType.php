@@ -10,13 +10,14 @@ class WasteBinType extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['bin_id', 'type', 'current_height_cm', 'max_height_cm', 'current_percentage', 'last_sensor_reading'];
+    const STATUS_OK = 'OK';
+    const STATUS_FULL = 'FULL';
+
+    protected $fillable = ['bin_id', 'type', 'current_percentage', 'last_sensor_reading', 'status'];
 
     protected function casts(): array
     {
         return [
-            'current_height_cm' => 'decimal:2',
-            'max_height_cm' => 'decimal:2',
             'current_percentage' => 'decimal:2',
             'last_sensor_reading' => 'datetime',
         ];
@@ -60,25 +61,10 @@ class WasteBinType extends Model
         $percentage = ($heightCm / $this->max_height_cm) * 100;
 
         $this->update([
-            'current_height_cm' => $heightCm,
             'current_percentage' => min($percentage, 100),
             'last_sensor_reading' => now(),
         ]);
 
         return $this;
-    }
-
-    public function getStatusLevel()
-    {
-        if ($this->current_percentage >= 80) {
-            return 'FULL';
-        }
-        if ($this->current_percentage >= 60) {
-            return 'HIGH';
-        }
-        if ($this->current_percentage >= 30) {
-            return 'MEDIUM';
-        }
-        return 'LOW';
     }
 }

@@ -13,14 +13,12 @@ class Bin extends Model
         'bin_code',
         'location',
         'address',
-        'capacity_liters',
         'is_active',
     ];
 
     protected function casts(): array
     {
         return [
-            'capacity_liters' => 'decimal:2',
             'is_active' => 'boolean',
         ];
     }

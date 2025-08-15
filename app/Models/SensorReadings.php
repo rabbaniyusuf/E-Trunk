@@ -9,15 +9,12 @@ class SensorReadings extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['waste_bin_type_id', 'height_cm', 'percentage', 'temperature', 'humidity', 'reading_time'];
+    protected $fillable = ['waste_bin_type_id', 'percentage', 'reading_time'];
 
     protected function casts(): array
     {
         return [
-            'height_cm' => 'decimal:2',
             'percentage' => 'decimal:2',
-            'temperature' => 'decimal:2',
-            'humidity' => 'decimal:2',
             'reading_time' => 'datetime',
         ];
     }

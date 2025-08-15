@@ -16,7 +16,6 @@ return new class extends Migration
             $table->string('bin_code', 50)->unique();
             $table->string('location');
             $table->text('address')->nullable();
-            $table->decimal('capacity_liters', 8, 2)->default(1.00);
             $table->boolean('is_active')->default(true);
             $table->timestamps();
 

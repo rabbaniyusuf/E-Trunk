@@ -4,8 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration
-{
+return new class extends Migration {
     /**
      * Run the migrations.
      */
@@ -14,10 +13,7 @@ return new class extends Migration
         Schema::create('sensor_readings', function (Blueprint $table) {
             $table->id();
             $table->foreignId('waste_bin_type_id')->constrained()->onDelete('cascade');
-            $table->decimal('height_cm', 8, 2);
-            $table->decimal('percentage', 5, 2);
-            $table->decimal('temperature', 5, 2)->nullable();
-            $table->decimal('humidity', 5, 2)->nullable();
+            $table->decimal('percentage', 5, 2); // Hanya persentase yang dibutuhkan
             $table->timestamp('reading_time')->useCurrent();
             $table->timestamps();
 
