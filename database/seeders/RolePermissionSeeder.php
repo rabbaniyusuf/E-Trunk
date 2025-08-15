@@ -92,16 +92,16 @@ class RolePermissionSeeder extends Seeder
         ]);
         $petugas->assignRole('petugas_kebersihan');
 
-        $user = User::create([
-            'name' => 'Charlie Wilson',
-            'email' => 'charlie@example.com',
-            'phone' => '081234567898',
-            'address' => 'Jl. Thamrin No. 30, Malang',
-            'waste_bin_code' => 'WB005',
-            'balance' => 0,
-            'password' => Hash::make('charlie123'),
-            'email_verified_at' => now(),
-        ]);
-        $user->assignRole('masyarakat');
+        // $user = User::create([
+        //     'name' => 'Charlie Wilson',
+        //     'email' => 'charlie@example.com',
+        //     'phone' => '081234567898',
+        //     'address' => 'Jl. Thamrin No. 30, Malang',
+        //     'waste_bin_code' => 'WB005',
+        //     'balance' => 0,
+        //     'password' => Hash::make('charlie123'),
+        //     'email_verified_at' => now(),
+        // ]);
+        // $user->assignRole('masyarakat');
     }
 }
