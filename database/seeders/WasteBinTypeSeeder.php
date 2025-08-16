@@ -20,8 +20,6 @@ class WasteBinTypeSeeder extends Seeder
             WasteBinType::create([
                 'bin_id' => $wasteBin->id,
                 'type' => 'recycle',
-                'current_height_cm' => rand(0, 30),
-                'max_height_cm' => 100.0,
                 'current_percentage' => rand(0, 30),
                 'last_sensor_reading' => now()->subMinutes(rand(1, 60)),
             ]);
@@ -30,8 +28,6 @@ class WasteBinTypeSeeder extends Seeder
             WasteBinType::create([
                 'bin_id' => $wasteBin->id,
                 'type' => 'non_recycle',
-                'current_height_cm' => rand(0, 40),
-                'max_height_cm' => 100.0,
                 'current_percentage' => rand(0, 40),
                 'last_sensor_reading' => now()->subMinutes(rand(1, 60)),
             ]);
@@ -42,7 +38,6 @@ class WasteBinTypeSeeder extends Seeder
         foreach ($fullBins as $bin) {
             $percentage = rand(75, 95);
             $bin->update([
-                'current_height_cm' => $percentage,
                 'current_percentage' => $percentage,
                 'last_sensor_reading' => now()->subMinutes(rand(5, 30)),
             ]);

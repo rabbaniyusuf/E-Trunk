@@ -28,19 +28,12 @@ class SensorReadingSeeder extends Seeder
                 for ($j = 0; $j < $readingsPerDay; $j++) {
                     $readingTime = $date->copy()->addHours(rand(6, 22))->addMinutes(rand(0, 59));
 
-                    // Simulasi peningkatan sampah secara bertahap
-                    $baseHeight = $i == 0 ? $wasteBinType->current_height_cm : rand(5, 60);
-                    $height = $baseHeight + rand(-5, 10);
-                    $height = max(0, min(100, $height)); // Pastikan dalam range 0-100
-
+                    $height = rand(0, 100); // Simulasi tinggi sampah dalam cm
                     $percentage = ($height / 100) * 100;
 
                     SensorReadings::create([
                         'waste_bin_type_id' => $wasteBinType->id,
-                        'height_cm' => $height,
                         'percentage' => $percentage,
-                        'temperature' => rand(25, 35) + rand(0, 99) / 100, // 25-35°C
-                        'humidity' => rand(60, 80) + rand(0, 99) / 100, // 60-80%
                         'reading_time' => $readingTime,
                         'created_at' => $readingTime,
                         'updated_at' => $readingTime,

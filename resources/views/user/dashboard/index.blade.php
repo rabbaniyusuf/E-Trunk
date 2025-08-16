@@ -654,7 +654,7 @@
     <!-- Statistics Cards - Updated Section Only -->
     <div class="row g-4 mb-4">
         <!-- Balance Card -->
-        <div class="col-md-6 col-lg-3">
+        <div class="col-md-4 col-lg-4">
             <div class="card stat-card">
                 <div class="stat-icon balance">
                     <i class="bi bi-wallet2"></i>
@@ -669,7 +669,7 @@
         </div>
 
         <!-- Recycle Volume -->
-        <div class="col-md-6 col-lg-3">
+        <div class="col-md-4 col-lg-4">
             <div class="card stat-card">
                 <div class="progress-circle">
                     <svg viewBox="0 0 80 80">
@@ -681,7 +681,6 @@
                     <div class="progress-text text-success">{{ number_format($recyclePercentage, 1) }}%</div>
                 </div>
                 <h6 class="text-muted mb-2">Sampah Recycle</h6>
-                <div class="text-success fw-semibold">{{ number_format($recycleVolume, 1) }} L</div>
                 <div
                     class="bin-status {{ $recyclePercentage >= 80 ? 'full' : ($recyclePercentage >= 60 ? 'high' : ($recyclePercentage >= 30 ? 'medium' : 'low')) }}">
                     <div class="bin-status-dot"></div>
@@ -691,7 +690,7 @@
         </div>
 
         <!-- Non-Recycle Volume -->
-        <div class="col-md-6 col-lg-3">
+        <div class="col-md-4 col-lg-4">
             <div class="card stat-card">
                 <div class="progress-circle">
                     <svg viewBox="0 0 80 80">
@@ -703,26 +702,10 @@
                     <div class="progress-text text-warning">{{ number_format($nonRecyclePercentage, 1) }}%</div>
                 </div>
                 <h6 class="text-muted mb-2">Sampah Non-Recycle</h6>
-                <div class="text-warning fw-semibold">{{ number_format($nonRecycleVolume, 1) }} L</div>
                 <div
                     class="bin-status {{ $nonRecyclePercentage >= 80 ? 'full' : ($nonRecyclePercentage >= 60 ? 'high' : ($nonRecyclePercentage >= 30 ? 'medium' : 'low')) }}">
                     <div class="bin-status-dot"></div>
                     {{ $nonRecyclePercentage >= 80 ? 'PENUH' : ($nonRecyclePercentage >= 60 ? 'TINGGI' : ($nonRecyclePercentage >= 30 ? 'SEDANG' : 'RENDAH')) }}
-                </div>
-            </div>
-        </div>
-
-        <!-- Total Volume -->
-        <div class="col-md-6 col-lg-3">
-            <div class="card stat-card">
-                <div class="stat-icon volume">
-                    <i class="bi bi-archive"></i>
-                </div>
-                <h6 class="text-muted mb-2">Total Volume</h6>
-                <h3 class="text-purple mb-1">{{ number_format($totalWasteVolume, 1) }} L</h3>
-                <div class="metric-change neutral">
-                    <i class="bi bi-info-circle"></i>
-                    Total kedua tempat sampah
                 </div>
             </div>
         </div>

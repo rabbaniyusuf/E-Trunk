@@ -237,18 +237,10 @@ class UserController extends Controller
         $recyclePercentage = (int) ($recycleBin->current_percentage ?? 0);
         $nonRecyclePercentage = (int) ($nonRecycleBin->current_percentage ?? 0);
 
-        // Calculate total waste volume (assuming each bin has 50L capacity)
-        $binCapacity = 50; // Liters per bin
-        $recycleVolume = ($recyclePercentage / 100) * $binCapacity;
-        $nonRecycleVolume = ($nonRecyclePercentage / 100) * $binCapacity;
-        $totalWasteVolume = $recycleVolume + $nonRecycleVolume;
 
         return [
             'recyclePercentage' => $recyclePercentage,
             'nonRecyclePercentage' => $nonRecyclePercentage,
-            'totalWasteVolume' => $totalWasteVolume,
-            'recycleVolume' => $recycleVolume,
-            'nonRecycleVolume' => $nonRecycleVolume,
         ];
     }
 
