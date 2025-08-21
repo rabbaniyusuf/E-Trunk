@@ -99,7 +99,7 @@ Route::middleware('auth')->group(function () {
                 });
 
             // User Management
-            // Route::resource('users', AdminController::class)->except(['show']);
+            Route::resource('users', AdminController::class)->except(['show']);
             Route::get('/users/{user}/toggle-status', [AdminController::class, 'toggleStatus'])->name('users.toggle-status');
 
             // Report Management

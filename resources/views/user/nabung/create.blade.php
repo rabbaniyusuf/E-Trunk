@@ -135,9 +135,8 @@
                                                     </div>
                                                     <h6 class="mb-2">Kertas</h6>
                                                     <div class="form-check d-flex justify-content-center">
-                                                        <input class="form-check-input waste-type-checkbox"
-                                                            type="checkbox" name="waste_types[]" value="kertas"
-                                                            id="kertas"
+                                                        <input class="form-check-input waste-type-checkbox" type="checkbox"
+                                                            name="waste_types[]" value="kertas" id="kertas"
                                                             {{ old('waste_types') && in_array('kertas', old('waste_types')) ? 'checked' : '' }}>
                                                     </div>
                                                 </div>
@@ -170,7 +169,7 @@
                                                         class="form-control @error('pickup_date') is-invalid @enderror"
                                                         id="pickup_date" name="pickup_date"
                                                         value="{{ old('pickup_date') }}"
-                                                        min="{{ date('Y-m-d', strtotime('+1 day')) }}"
+                                                        min="{{ date('Y-m-d', strtotime('+2 day')) }}"
                                                         max="{{ date('Y-m-d', strtotime('+7 days')) }}" required>
                                                     <div class="form-text">Pilih tanggal 1-7 hari ke depan</div>
                                                     @error('pickup_date')
@@ -499,14 +498,27 @@
                     }
                 }
 
-                // Set minimum date for date picker
+                function formatDateToAsiaJakarta(date) {
+                    // offset Asia/Jakarta = UTC+7
+                    const jakartaOffset = 7 * 60; // menit
+                    const localDate = new Date(date.getTime() + (jakartaOffset - date.getTimezoneOffset()) * 60000);
+
+                    const year = localDate.getFullYear();
+                    const month = String(localDate.getMonth() + 1).padStart(2, "0");
+                    const day = String(localDate.getDate()).padStart(2, "0");
+
+                    return `${year}-${month}-${day}`;
+                }
+
+                // Minimum: besok
                 const tomorrow = new Date();
                 tomorrow.setDate(tomorrow.getDate() + 1);
-                pickupDate.min = tomorrow.toISOString().split('T')[0];
+                pickupDate.min = formatDateToAsiaJakarta(tomorrow);
 
+                // Maksimum: 7 hari ke depan
                 const maxDate = new Date();
                 maxDate.setDate(maxDate.getDate() + 7);
-                pickupDate.max = maxDate.toISOString().split('T')[0];
+                pickupDate.max = formatDateToAsiaJakarta(maxDate);
 
                 // Auto-dismiss alerts after 10 seconds
                 setTimeout(() => {
