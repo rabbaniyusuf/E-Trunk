@@ -34,6 +34,7 @@ class WasteCollection extends Model
     ];
 
     protected $casts = [
+        'assigned_to' => 'integer',
         'waste_types' => 'array',
         'pickup_date' => 'date',
         'processed_at' => 'datetime',
