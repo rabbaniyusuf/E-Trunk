@@ -25,6 +25,7 @@ class PointRedemptions extends Model
     protected function casts(): array
     {
         return [
+            'user_id' => 'integer',
             'points_redeemed' => 'integer',
             'cash_value' => 'decimal:2',
             'processed_at' => 'datetime',
