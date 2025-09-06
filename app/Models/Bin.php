@@ -28,10 +28,11 @@ class Bin extends Model
         return $this->hasMany(User::class, 'waste_bin_code', 'bin_code');
     }
 
-    public function wasteBinTypes()
-    {
-        return $this->hasMany(WasteBinType::class, 'bin_id', 'id');
-    }
+   public function wasteBinTypes()
+{
+    return $this->hasMany(WasteBinType::class, 'bin_id');
+}
+
 
     public function schedules()
     {

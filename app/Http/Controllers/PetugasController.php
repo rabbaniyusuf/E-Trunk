@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\User;
 use App\Models\Schedules;
 use App\Models\Notification;
 use Illuminate\Http\Request;
@@ -17,8 +18,8 @@ class PetugasController extends Controller
         $petugasId = auth()->id();
 
         // Ambil filter dari request
-        $todayFilter = $request->get('today_filter', 'all'); // all, pending, completed
-        $upcomingFilter = $request->get('upcoming_filter', 'all'); // all, scheduled, pending
+        $todayFilter = $request->get('today_filter', 'all');
+        $upcomingFilter = $request->get('upcoming_filter', 'all');
 
         // Query dasar untuk pengambilan hari ini
         $todayQuery = WasteCollection::where('assigned_to', $petugasId)
@@ -36,7 +37,6 @@ class PetugasController extends Controller
             case 'in_progress':
                 $todayQuery->where('status', WasteCollection::STATUS_IN_PROGRESS);
                 break;
-            // 'all' tidak perlu filter tambahan
         }
 
         $todayCollections = $todayQuery->orderBy('pickup_time')->get();
@@ -54,14 +54,12 @@ class PetugasController extends Controller
             case 'pending':
                 $upcomingQuery->where('status', WasteCollection::STATUS_PENDING);
                 break;
-            // 'all' tidak perlu filter tambahan
         }
 
         $upcomingCollections = $upcomingQuery->orderBy('pickup_date')->orderBy('pickup_time')->get();
 
         // Statistics - hitung dari semua data tanpa filter
         $allTodayCollections = WasteCollection::where('assigned_to', $petugasId)->whereDate('pickup_date', today())->get();
-
         $allUpcomingCollections = WasteCollection::where('assigned_to', $petugasId)
             ->whereBetween('pickup_date', [today()->addDay(), today()->addDays(7)])
             ->get();
@@ -89,7 +87,52 @@ class PetugasController extends Controller
             ],
         ];
 
-        return view('petugas.dashboard.index', compact('todayCollections', 'upcomingCollections', 'stats', 'filterCounts', 'todayFilter', 'upcomingFilter'));
+        // NEW: Get all available users and selected user statistics
+        $availableUsers = $this->getAvailableUsers();
+        $selectedUserIds = $request->get('selected_users', []); // Get selected user IDs from request
+
+        // If no users selected, default to first 3 users
+        if (empty($selectedUserIds) && $availableUsers->isNotEmpty()) {
+            $selectedUserIds = $availableUsers->take(3)->pluck('id')->toArray();
+        }
+
+        $userStats = $this->getUserStatistics($selectedUserIds);
+
+        return view('petugas.dashboard.index', compact('todayCollections', 'upcomingCollections', 'stats', 'filterCounts', 'todayFilter', 'upcomingFilter', 'userStats', 'availableUsers', 'selectedUserIds'));
+    }
+
+    private function getAvailableUsers()
+    {
+        return User::role('masyarakat')->select('id', 'name', 'email')->whereHas('wasteBin')->orderBy('name')->get();
+    }
+
+    private function getUserStatistics($selectedUserIds = [])
+    {
+        if (empty($selectedUserIds)) {
+            return collect();
+        }
+
+        return User::role('masyarakat')
+            ->select('id', 'name', 'email', 'balance', 'waste_bin_code')
+            ->with(['wasteBin.wasteBinTypes'])
+            ->whereIn('id', $selectedUserIds)
+            ->whereHas('wasteBin')
+            ->get()
+            ->map(function ($user) {
+                $wasteBinTypes = $user->wasteBin->wasteBinTypes ?? collect();
+
+                $recycleWasteBin = $wasteBinTypes->firstWhere('type', 'recycle');
+                $nonRecycleWasteBin = $wasteBinTypes->firstWhere('type', 'non_recycle');
+
+                return [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'balance' => $user->balance,
+                    'recycle_percentage' => round(optional($recycleWasteBin)->current_percentage ?? 0, 1),
+                    'non_recycle_percentage' => round(optional($nonRecycleWasteBin)->current_percentage ?? 0, 1),
+                ];
+            });
     }
 
     public function showTask($id)
@@ -289,4 +332,24 @@ class PetugasController extends Controller
             'notifiable_id' => $wasteCollection->id,
         ]);
     }
+
+    // public function getUserStatsApi(Request $request)
+    // {
+    //     $selectedUserIds = $request->get('selected_users', []);
+
+    //     if (empty($selectedUserIds)) {
+    //         return response()->json([
+    //             'success' => false,
+    //             'message' => 'No users selected',
+    //         ]);
+    //     }
+
+    //     $userStats = $this->getUserStatistics($selectedUserIds);
+
+    //     return response()->json([
+    //         'success' => true,
+    //         'data' => $userStats,
+    //         'count' => $userStats->count(),
+    //     ]);
+    // }
 }

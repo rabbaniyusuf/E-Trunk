@@ -52,6 +52,7 @@ Route::middleware('auth')->group(function () {
     // // Profile Routes - Semua user bisa akses
     Route::get('/profile', [HomeController::class, 'profile'])->name('profile');
     Route::put('/profile', [HomeController::class, 'updateProfile'])->name('profile.update');
+    // Route::get('/dashboard/user-stats', [PetugasController::class, 'getUserStatsApi'])->name('dashboard.user-stats-api');
 
     // ===========================================
     // ROLE-BASED ROUTES

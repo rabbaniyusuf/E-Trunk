@@ -100,6 +100,17 @@
             </div>
         </div>
 
+        <div class="row mb-4">
+            <div class="col-12">
+                {{-- Include the updated user monitoring component --}}
+                @include('components.user-statistic', [
+                    'userStats' => $userStats,
+                    'availableUsers' => $availableUsers,
+                    'selectedUserIds' => $selectedUserIds,
+                ])
+            </div>
+        </div>
+
         <div class="filter-section">
             <div class="filter-tabs">
                 <form method="GET" action="{{ route('petugas.dashboard') }}" id="filterForm">

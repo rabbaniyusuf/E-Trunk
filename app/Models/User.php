@@ -56,7 +56,7 @@ class User extends Authenticatable
         return $this->hasRole('masyarakat');
     }
 
-     public function bins()
+    public function bins()
     {
         return $this->hasMany(Bin::class);
     }
@@ -64,9 +64,9 @@ class User extends Authenticatable
     /**
      * Get the recycle bin for the user.
      */
-     public function wasteBin()
+    public function wasteBin()
     {
-        return $this->belongsTo(Bin::class, 'waste_bin_code', 'bin_code');
+        return $this->hasOne(Bin::class, 'bin_code', 'waste_bin_code');
     }
 
     public function pointTransactions()

@@ -18,25 +18,78 @@ use Illuminate\Validation\Rules\Password;
 
 class AdminController extends Controller
 {
-    public function dashboard()
+    public function dashboard(Request $request)
     {
         // Get recent notifications for sidebar/quick view
         $recentNotifications = Notification::where('user_id', Auth::id())->orderBy('created_at', 'desc')->take(5)->get();
 
         $unreadNotificationCount = Notification::where('user_id', Auth::id())->unread()->count();
 
-        // Sample statistics (replace with actual data from your models)
+        // Basic statistics
         $statistics = [
-            'total_users' => 150,
-            'total_transactions' => 45,
-            'daily_waste' => '1.2kg',
-            'active_officers' => 8,
-            'total_balance' => 2500000,
-            'recyclable_waste' => 1247,
-            'non_recyclable_waste' => 328,
+            'total_users' => User::role('masyarakat')->count(),
+            'total_transactions' => 45, // Replace with actual transaction count
+            'daily_waste' => '1.2kg', // Replace with actual waste calculation
+            'active_officers' => User::role('petugas_kebersihan')->count(),
+            'total_balance' => User::sum('balance'),
+            'recyclable_waste' => 1247, // Replace with actual count
+            'non_recyclable_waste' => 328, // Replace with actual count
         ];
 
-        return view('admin.dashboard.index', compact('recentNotifications', 'unreadNotificationCount', 'statistics'));
+        // User monitoring functionality (reused from PetugasController)
+        $availableUsers = $this->getAvailableUsers();
+        $selectedUserIds = $request->get('selected_users', []); // Get selected user IDs from request
+
+        // If no users selected, default to first 5 users for admin dashboard
+        if (empty($selectedUserIds) && $availableUsers->isNotEmpty()) {
+            $selectedUserIds = $availableUsers->take(5)->pluck('id')->toArray();
+        }
+
+        $userStats = $this->getUserStatistics($selectedUserIds);
+
+        return view('admin.dashboard.index', compact('recentNotifications', 'unreadNotificationCount', 'statistics', 'userStats', 'availableUsers', 'selectedUserIds'));
+    }
+
+    /**
+     * Get all available users for monitoring
+     * Reused from PetugasController with same logic
+     */
+    private function getAvailableUsers()
+    {
+        return User::role('masyarakat')->select('id', 'name', 'email')->whereHas('wasteBin')->orderBy('name')->get();
+    }
+
+    /**
+     * Get user statistics for selected users
+     * Reused from PetugasController with same logic
+     */
+    private function getUserStatistics($selectedUserIds = [])
+    {
+        if (empty($selectedUserIds)) {
+            return collect();
+        }
+
+        return User::role('masyarakat')
+            ->select('id', 'name', 'email', 'balance', 'waste_bin_code')
+            ->with(['wasteBin.wasteBinTypes'])
+            ->whereIn('id', $selectedUserIds)
+            ->whereHas('wasteBin')
+            ->get()
+            ->map(function ($user) {
+                $wasteBinTypes = $user->wasteBin->wasteBinTypes ?? collect();
+
+                $recycleWasteBin = $wasteBinTypes->firstWhere('type', 'recycle');
+                $nonRecycleWasteBin = $wasteBinTypes->firstWhere('type', 'non_recycle');
+
+                return [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'balance' => $user->balance,
+                    'recycle_percentage' => round(optional($recycleWasteBin)->current_percentage ?? 0, 1),
+                    'non_recycle_percentage' => round(optional($nonRecycleWasteBin)->current_percentage ?? 0, 1),
+                ];
+            });
     }
 
     public function index(Request $request)
@@ -103,9 +156,7 @@ class AdminController extends Controller
         }
     }
 
-    public function toggleStatus()
-    {
-    }
+    public function toggleStatus() {}
 
     public function reports(Request $request)
     {
@@ -273,31 +324,17 @@ class AdminController extends Controller
         return view('admin.reports.index', compact('users'));
     }
 
-    public function showReport()
-    {
-    }
+    public function showReport() {}
 
-    public function approveReport()
-    {
-    }
+    public function approveReport() {}
 
-    public function rejectReport()
-    {
-    }
+    public function rejectReport() {}
 
-    public function statistics()
-    {
-    }
+    public function statistics() {}
 
-    public function assignReport()
-    {
-    }
+    public function assignReport() {}
 
-    public function exportReports()
-    {
-    }
+    public function exportReports() {}
 
-    public function exportUsers()
-    {
-    }
+    public function exportUsers() {}
 }

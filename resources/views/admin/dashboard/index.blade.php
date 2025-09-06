@@ -18,8 +18,8 @@
             content: '';
             position: absolute;
             top: 0;
-            right: 0;a
-            width: 100px;
+            right: 0;
+            a width: 100px;
             height: 100px;
             background: rgba(255, 255, 255, 0.1);
             border-radius: 50%;
@@ -426,88 +426,16 @@
             </div>
         </div>
 
-        <!-- Recent Activity -->
-        {{-- <div class="row">
-            <div class="col-lg-8 mb-4">
-                <div class="recent-activity card-animate">
-                    <h5 class="mb-3">
-                        <i class="bi bi-clock-history me-2"></i>Aktivitas Terbaru
-                    </h5>
-                    <div class="activity-list">
-                        <div class="activity-item">
-                            <div class="activity-icon bg-success text-white">
-                                <i class="bi bi-person-check"></i>
-                            </div>
-                            <div class="activity-content">
-                                <div class="activity-title">User baru mendaftar</div>
-                                <div class="activity-time">2 menit yang lalu</div>
-                            </div>
-                        </div>
-                        <div class="activity-item">
-                            <div class="activity-icon bg-primary text-white">
-                                <i class="bi bi-arrow-repeat"></i>
-                            </div>
-                            <div class="activity-content">
-                                <div class="activity-title">Transaksi sampah berhasil</div>
-                                <div class="activity-time">5 menit yang lalu</div>
-                            </div>
-                        </div>
-                        <div class="activity-item">
-                            <div class="activity-icon bg-warning text-white">
-                                <i class="bi bi-calendar-check"></i>
-                            </div>
-                            <div class="activity-content">
-                                <div class="activity-title">Jadwal petugas diperbarui</div>
-                                <div class="activity-time">10 menit yang lalu</div>
-                            </div>
-                        </div>
-                        <div class="activity-item">
-                            <div class="activity-icon bg-info text-white">
-                                <i class="bi bi-file-text"></i>
-                            </div>
-                            <div class="activity-content">
-                                <div class="activity-title">Report bulanan dibuat</div>
-                                <div class="activity-time">1 jam yang lalu</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+        <div class="row mb-4">
+            <div class="col-12">
+                {{-- Include the updated user monitoring component --}}
+                @include('components.user-statistic', [
+                    'userStats' => $userStats,
+                    'availableUsers' => $availableUsers,
+                    'selectedUserIds' => $selectedUserIds,
+                ])
             </div>
-
-            <div class="col-lg-4 mb-4">
-                <div class="card card-animate">
-                    <div class="card-body">
-                        <h5 class="card-title">
-                            <i class="bi bi-info-circle me-2"></i>Informasi Sistem
-                        </h5>
-                        <div class="mb-3">
-                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                <span class="small">Kapasitas Server</span>
-                                <span class="small text-muted">75%</span>
-                            </div>
-                            <div class="progress" style="height: 6px;">
-                                <div class="progress-bar bg-success" style="width: 75%"></div>
-                            </div>
-                        </div>
-                        <div class="mb-3">
-                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                <span class="small">Database Usage</span>
-                                <span class="small text-muted">60%</span>
-                            </div>
-                            <div class="progress" style="height: 6px;">
-                                <div class="progress-bar bg-primary" style="width: 60%"></div>
-                            </div>
-                        </div>
-                        <div class="text-center mt-3">
-                            <small class="text-muted">
-                                <i class="bi bi-shield-check me-1"></i>
-                                Sistem berjalan normal
-                            </small>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div> --}}
+        </div>
     </div>
 @endsection
 
